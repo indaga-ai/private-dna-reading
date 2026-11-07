@@ -302,6 +302,7 @@ function renderReadingText(text) {
 
 // NEAR AI Cloud records the signature a moment after the reply; retry a 404 a few times, about a second apart.
 async function fetchSignature(id, standInHashes) {
+  await new Promise((ok) => setTimeout(ok, standInHashes ? 0 : 1200));
   for (let i = 0; i < 6; i++) {
     const r = await fetch(`api/signature/${encodeURIComponent(id)}${standInHashes ? `?hashes=${standInHashes}` : ''}`);
     if (r.status === 404) {
@@ -345,13 +346,15 @@ async function sendReading() {
     const reply = JSON.parse(new TextDecoder().decode(responseBytes));
     const choice = reply.choices?.[0];
     const text = decryptWith(client.secretKey, choice?.message?.content || '');
-    out.lastChild.replaceWith(el('p', { class: 'status', text: 'Decrypted on this device with a key made for this visit. Checking the signature...' }));
+    const decrypted = el('p', { class: 'status', text: 'Decrypted on this device with a key made for this visit. Checking the signature...' });
+    out.lastChild.replaceWith(decrypted);
     out.append(renderReadingText(text));
     if (choice?.finish_reason === 'length') out.append(el('p', { class: 'status', text: 'The reading reached its length limit and may end mid-sentence.' }));
     const stray = strayTopics(text);
     if (stray.length) out.append(el('div', { class: 'verdict bad', text: `The AI's text strayed beyond traits (it mentions ${stray.join(', ')}). This app reads traits only: trust the fixed results in step 2, not that part of the text.` }));
     const sig = await fetchSignature(reply.id, live ? null : `${sha256Hex(requestBytes)}:${sha256Hex(responseBytes)}`);
     const v = verifyReplySignature({ sig, model: state.config.model, requestBytes, responseBytes, key: signKey });
+    decrypted.textContent = 'Decrypted on this device with a key made for this visit.';
     renderChecks(out, v.checks);
     if (!live) out.append(el('div', { class: 'verdict bad', text: 'Stand-in mode: this server has no NEAR AI Cloud key, so the reply came from a local stand-in. Its key is not the attested one.' }));
     else out.append(el('div', { class: `verdict ${v.ok ? 'ok' : 'bad'}`, text: v.ok ? 'This reply was signed inside the verified hardware, for exactly this request.' : 'The signature check failed: do not trust this reply.' }));
