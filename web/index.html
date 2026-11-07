@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Private DNA Reading</title>
+  <meta name="description" content="An AI reads a few DNA traits inside sealed hardware. Your file stays on this page; the genotypes it needs are encrypted to a key that only the verified hardware holds.">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="dist/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <div class="brand">
+        <img src="icon.svg" alt="" width="28" height="28">
+        <span>Private DNA Reading</span>
+      </div>
+      <nav>
+        <a href="#how">How it works</a>
+        <a href="https://github.com/indaga-ai/private-dna-reading" rel="noopener">Source</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="intro">
+      <h1>An AI reads your DNA traits inside sealed hardware.</h1>
+      <p class="lede">Your raw DNA file is read on this page and never uploaded. Only a handful of trait genotypes leave it, encrypted to a key that this page first checks is held inside a confidential-computing chip. The reply comes back encrypted to this page and signed by that key.</p>
+      <p id="mode-banner" class="banner" hidden></p>
+    </section>
+
+    <ol class="steps">
+      <li class="step" id="step-genome">
+        <div class="step-head"><span class="num">1</span><h2>Choose a genome</h2></div>
+        <p class="hint">The samples are made-up people (synthetic files in the 23andMe and AncestryDNA formats).</p>
+        <div id="samples" class="samples"></div>
+        <div id="own-file" class="own-file" hidden>
+          <label class="file-button">
+            <input id="file-input" type="file" accept=".txt,.csv,.tsv,.zip">
+            <span>Use your own raw DNA file</span>
+          </label>
+          <span class="hint">23andMe, AncestryDNA, MyHeritage, FamilyTreeDNA or Living DNA (.txt, .csv or .zip). Read on this device only.</span>
+        </div>
+        <p id="own-file-off" class="hint" hidden>This public demo reads the samples only. To read your own file, run the app on your own computer (two commands, in the README).</p>
+        <div id="genome-status" class="status" aria-live="polite"></div>
+      </li>
+
+      <li class="step" id="step-panel" data-locked>
+        <div class="step-head"><span class="num">2</span><h2>What leaves this page</h2></div>
+        <p class="hint">These lines are all that is sent, and they are encrypted first. The rest of the file stays here. Each result below is worked out on this page from a fixed table; the AI only writes it up.</p>
+        <div id="panel"></div>
+      </li>
+
+      <li class="step" id="step-tee" data-locked>
+        <div class="step-head"><span class="num">3</span><h2>Check the sealed hardware</h2></div>
+        <p class="hint">This page asks NEAR AI Cloud for a fresh hardware report, with a random number only this page knows, and checks it before trusting the model's key.</p>
+        <button id="check-tee" class="primary" disabled>Check the hardware</button>
+        <div id="tee" aria-live="polite"></div>
+      </li>
+
+      <li class="step" id="step-pay" data-locked hidden>
+        <div class="step-head"><span class="num">4</span><h2>Pay with any coin</h2></div>
+        <div id="pay"></div>
+      </li>
+
+      <li class="step" id="step-reading" data-locked>
+        <div class="step-head"><span class="num" id="reading-num">4</span><h2>Your reading</h2></div>
+        <button id="send" class="primary" disabled>Encrypt and send</button>
+        <div id="reading" aria-live="polite"></div>
+      </li>
+    </ol>
+
+    <section id="how" class="how">
+      <h2>How it works</h2>
+      <ol>
+        <li><strong>Your file stays here.</strong> The page reads the file in your browser and keeps only the eight variants in the panel. Its security policy lets it talk to its own server only.</li>
+        <li><strong>The hardware is checked first.</strong> NEAR AI Cloud runs the model inside an Intel TDX confidential VM with an NVIDIA GPU in confidential mode. The page asks for a report bound to a random number it just made, and checks the report: Intel's signature, the model key and the number inside it, and the exact software list the hardware measured.</li>
+        <li><strong>Encrypted to that key.</strong> The panel is encrypted (X25519, XChaCha20-Poly1305) to the key the hardware vouched for. Our server and NEAR's gateway pass on ciphertext they cannot read.</li>
+        <li><strong>Signed reply.</strong> The model encrypts its reply to a key this page made for this visit, and signs a hash of the exact request and reply. The page checks that signature against the attested key.</li>
+        <li><strong>Nothing is kept.</strong> Nothing is stored on our server. Close the tab and the keys are gone.</li>
+      </ol>
+      <h3>What this does not prove</h3>
+      <ul>
+        <li>It trusts Intel and NVIDIA: their chips and their signing keys.</li>
+        <li>The report shows which container images run, by digest. Whether that software keeps no logs is a claim you can check against NEAR AI's published source, not something the hardware proves.</li>
+        <li>The genotypes do reach the model inside the TEE: that is how it can read them.</li>
+        <li>This is a curiosity reading of a few traits. It is not medical advice and says nothing about disease.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Built by <a href="https://indaga.ai" rel="noopener">Indaga</a> for NEAR HACKATHON 2026. Open source under the MIT licence. Private inference by <a href="https://near.ai" rel="noopener">NEAR AI Cloud</a>; payments through NEAR Intents.</p>
+  </footer>
+</body>
+</html>

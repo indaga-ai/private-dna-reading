@@ -1,0 +1,30 @@
+{
+  "name": "private-dna-reading",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A private AI reading of DNA traits. The browser checks NEAR AI Cloud's hardware attestation, encrypts a fixed trait panel to the attested model key, and verifies the signed reply. Pay with any coin through NEAR Intents.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/build.mjs && node server/index.mjs",
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "verify-tee": "node scripts/verify-tee.mjs",
+    "reading": "node scripts/reading.mjs",
+    "quote": "node scripts/quote.mjs",
+    "samples": "node scripts/make-samples.mjs"
+  },
+  "dependencies": {
+    "@noble/ciphers": "2.4.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@phala/dcap-qvl": "0.7.0",
+    "jose": "6.2.13"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
