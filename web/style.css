@@ -112,7 +112,8 @@ summary { cursor: pointer; font-size: 14px; color: var(--muted); }
 pre, code { font-family: var(--mono); font-size: 12.5px; }
 pre { background: var(--code); border-radius: 10px; padding: 12px; overflow: auto; max-height: 260px; white-space: pre-wrap; word-break: break-all; margin: 8px 0 0; }
 
-.checks { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; }
+.checks { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+h3.group { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 18px 0 0; font-weight: 650; }
 .check { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; }
 .mark { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; }
 .mark.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }

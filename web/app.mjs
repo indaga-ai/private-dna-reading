@@ -112,6 +112,28 @@ function renderPanel() {
 
 // ---- Step 3: the hardware check -------------------------------------------------------------------------------
 
+// The hardware checks, grouped so they read as five questions.
+const GROUPS = [
+  ['Is this report genuine and fresh?', ['model', 'nonce-echo', 'quote-format', 'intel', 'not-debug']],
+  ['Is the model key inside the hardware?', ['report-nonce', 'report-key']],
+  ['What software runs there?', ['compose-bound', 'rtmr3', 'deploy-log']],
+  ['Are the GPUs in confidential mode?', ['gpu-nonce', 'nvidia']],
+  ['And the route in between?', ['gateway']],
+];
+
+function renderGroupedChecks(container, checks) {
+  const seen = new Set();
+  for (const [title, ids] of GROUPS) {
+    const part = checks.filter((c) => ids.includes(c.id));
+    if (!part.length) continue;
+    part.forEach((c) => seen.add(c.id));
+    container.append(el('h3', { class: 'group', text: title }));
+    renderChecks(container, part);
+  }
+  const rest = checks.filter((c) => !seen.has(c.id));
+  if (rest.length) renderChecks(container, rest);
+}
+
 function renderChecks(container, checks) {
   const list = el('ul', { class: 'checks' }, checks.map((c) => el('li', { class: 'check' },
     el('span', { class: `mark ${c.ok === true ? 'ok' : c.ok === false ? 'bad' : 'skip'}`, text: c.ok === true ? '✓' : c.ok === false ? '✕' : '–', 'aria-label': c.ok === true ? 'passed' : c.ok === false ? 'failed' : 'not checked' }),
@@ -137,7 +159,7 @@ async function checkHardware() {
     });
     state.attestation = result;
     out.replaceChildren(el('p', { class: 'status', text: `Nonce sent: ${nonce.slice(0, 16)}...` }));
-    renderChecks(out, result.checks);
+    renderGroupedChecks(out, result.checks);
     out.append(el('div', { class: `verdict ${result.ok ? 'ok' : 'bad'}`, text: result.ok
       ? 'The model key below is held inside verified confidential hardware.'
       : 'The hardware report did not pass every check. Nothing will be sent to this key.' }));
