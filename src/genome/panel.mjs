@@ -20,7 +20,7 @@ export const TRAITS = [
     snps: [{ rsid: 'rs4988235', aliases: [], chrom: '2', pos37: 136608646, pos38: 135851076, alleles: ['A', 'G'] }],
     calls: {
       AA: 'You carry two copies of the lactase-persistence version, a pattern that usually goes with making the lactase enzyme into adulthood.',
-      AG: 'You carry one copy of the lactase-persistence version; most people with one copy keep making lactase as adults, though this is the least certain of the three results.',
+      AG: 'You carry one copy of the lactase-persistence version; most people with one copy keep making lactase as adults, though a single copy predicts this less reliably than two copies or none.',
       GG: 'You carry no copy of the lactase-persistence version this test reads; in European-ancestry studies this usually means lactase production tapers after childhood, the most common pattern worldwide.',
     },
     caveat: 'Other lactase-persistence versions, common in parts of Africa, the Middle East and South Asia, are not read here, so GG does not mean non-persistence for everyone. This is about the enzyme, not a test for any condition.',
