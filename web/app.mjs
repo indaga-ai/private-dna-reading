@@ -102,9 +102,11 @@ const TRAIT_ART = { lactase: 'lactase', flush: 'flush', earwax: 'ear', eyes: 'ey
 function traitArt(id) {
   const name = TRAIT_ART[id];
   if (!name) return el('span', { class: 'trait-dot', 'aria-hidden': 'true' });
-  const img = el('img', { src: `art/${name}.jpg`, alt: '', loading: 'lazy', width: 52, height: 52 });
-  img.addEventListener('error', () => img.replaceWith(el('span', { class: 'trait-dot', 'aria-hidden': 'true' })));
-  return img;
+  // Night art where it exists (lactase and muscle are the report's day art only).
+  const night = !['lactase', 'muscle'].includes(name);
+  return el('picture', {},
+    night ? el('source', { srcset: `art/${name}-night.jpg`, media: '(prefers-color-scheme: dark)' }) : null,
+    el('img', { src: `art/${name}.jpg`, alt: '', loading: 'lazy', width: 56, height: 56 }));
 }
 
 function renderPanel() {
@@ -406,11 +408,6 @@ async function start() {
   else {
     $('own-file').hidden = false;
     $('file-input').addEventListener('change', (e) => e.target.files[0] && loadFile(e.target.files[0]));
-  }
-  for (const fig of document.querySelectorAll('[data-art]')) {
-    const img = fig.querySelector('img');
-    img.addEventListener('load', () => { fig.hidden = false; });
-    img.src = `art/${fig.dataset.art}.jpg`;
   }
   $('check-tee').addEventListener('click', checkHardware);
   $('send').addEventListener('click', sendReading);

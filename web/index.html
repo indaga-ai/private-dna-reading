@@ -36,14 +36,15 @@
 
   <main class="wrap">
     <section class="intro">
-      <div>
+      <div class="intro-text">
         <p class="overline">Built at NEAR HACKATHON · open source</p>
         <h1>An AI reads your DNA traits inside sealed hardware.</h1>
         <p class="lede">Your raw DNA file is read on this page and never uploaded. Only a handful of trait genotypes leave it, encrypted to a key that this page first checks is held inside a confidential-computing chip. The reply comes back encrypted to this page and signed by that key.</p>
       </div>
-      <figure class="art hero-art">
-        <img src="art/wgs.jpg" alt="A glass DNA double helix under a magnifying glass" width="1400" height="933">
-      </figure>
+      <picture class="hero-bg">
+        <source srcset="art/hero-night.jpg" media="(prefers-color-scheme: dark)">
+        <img src="art/wgs.jpg" alt="" width="1400" height="933">
+      </picture>
     </section>
     <figure class="band">
       <picture>
@@ -76,7 +77,7 @@
       </li>
 
       <li class="step" id="step-tee" data-locked>
-        <figure class="step-art" data-art="vault" hidden><img alt="A sealed glass chip enclosure holding a glowing DNA ribbon"></figure>
+        <figure class="step-art"><picture><source srcset="art/vault-night.jpg" media="(prefers-color-scheme: dark)"><img src="art/vault.jpg" alt="A sealed glass chip enclosure holding a glowing DNA ribbon" width="900" height="600" loading="lazy"></picture></figure>
         <div class="step-head"><span class="num">3</span><h2>Check the sealed hardware</h2></div>
         <p class="hint">This page asks NEAR AI Cloud for a fresh hardware report, with a random number only this page knows, and checks it before trusting the model's key.</p>
         <button id="check-tee" class="primary" disabled>Check the hardware</button>
@@ -84,13 +85,13 @@
       </li>
 
       <li class="step" id="step-pay" data-locked hidden>
-        <figure class="step-art" data-art="coins" hidden><img alt="Glass coins of different kinds passing through a prism and leaving as one"></figure>
+        <figure class="step-art"><picture><source srcset="art/coins-night.jpg" media="(prefers-color-scheme: dark)"><img src="art/coins.jpg" alt="Glass coins of different kinds passing through a prism and leaving as one" width="900" height="600" loading="lazy"></picture></figure>
         <div class="step-head"><span class="num">4</span><h2>Pay with any coin</h2></div>
         <div id="pay"></div>
       </li>
 
       <li class="step" id="step-reading" data-locked>
-        <figure class="step-art" data-art="cipher" hidden><img alt="A DNA ribbon turning into glass tiles that flow into a sealed cube"></figure>
+        <figure class="step-art"><picture><source srcset="art/cipher-night.jpg" media="(prefers-color-scheme: dark)"><img src="art/cipher.jpg" alt="A DNA ribbon turning into glass tiles that flow into a sealed cube" width="900" height="600" loading="lazy"></picture></figure>
         <div class="step-head"><span class="num" id="reading-num">4</span><h2>Your reading</h2></div>
         <button id="send" class="primary" disabled>Encrypt and send</button>
         <div id="reading" aria-live="polite"></div>
@@ -99,6 +100,33 @@
 
     <section id="how" class="how">
       <h2>How it works</h2>
+      <div class="flow" role="img" aria-label="Your browser sends ciphertext through our relay and NEAR AI's gateway to the model inside a TEE; only the browser and the TEE can read it.">
+        <div class="node">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="6" width="24" height="18" rx="3"/><path d="M4 11h24M8 8.6h.01M11 8.6h.01"/><path d="M13 28h6M16 24v4"/></svg>
+          <b>Your browser</b><span>Reads the file, checks the hardware, encrypts, decrypts and verifies.</span>
+        </div>
+        <div class="link"><span class="chip"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>ciphertext</span></div>
+        <div class="node">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="5" width="22" height="9" rx="2"/><rect x="5" y="18" width="22" height="9" rx="2"/><path d="M9 9.5h.01M9 22.5h.01M14 9.5h9M14 22.5h9"/></svg>
+          <b>Our relay</b><span>Adds the API key and limits. Sees ciphertext only.</span>
+        </div>
+        <div class="link"><span class="chip"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>ciphertext</span></div>
+        <div class="node">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11"/><path d="M5 16h22M16 5c3 3.2 4.5 6.8 4.5 11S19 23.8 16 27c-3-3.2-4.5-6.8-4.5-11S13 8.2 16 5z"/></svg>
+          <b>NEAR AI gateway</b><span>Routes the request. Runs in a TEE too; sees ciphertext only.</span>
+        </div>
+        <div class="link"><span class="chip"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>ciphertext</span></div>
+        <div class="node tee">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="8" y="8" width="16" height="16" rx="3"/><path d="M12 3v5M16 3v5M20 3v5M12 24v5M16 24v5M20 24v5M3 12h5M3 16h5M3 20h5M24 12h5M24 16h5M24 20h5"/><path d="M13 16.5l2 2 4-4.5"/></svg>
+          <b>The model, in a TEE</b><span>Intel TDX and NVIDIA GPUs in confidential mode. The only place the genotypes are read.</span>
+        </div>
+      </div>
+      <ol class="proofs">
+        <li><span class="pn">1</span><b>Proof first.</b> Before anything is sent, your browser checks a fresh hardware report bound to its own random number: Intel's signature, NVIDIA's verdict, the model's key.</li>
+        <li><span class="pn">2</span><b>Sealed on the way.</b> The six genotypes are encrypted to that key. The relay and the gateway carry them without being able to read them.</li>
+        <li><span class="pn">3</span><b>Signed on the way back.</b> The reading returns encrypted to your browser and signed inside the TEE, for exactly this request.</li>
+      </ol>
+      <h3>In words</h3>
       <ol>
         <li><strong>Your file stays here.</strong> The page reads the file in your browser and keeps only the eight variants in the panel. Its security policy lets it talk only to its own server, plus NVIDIA's public key list.</li>
         <li><strong>The hardware is checked first.</strong> NEAR AI Cloud runs the model inside an Intel TDX confidential VM with NVIDIA GPUs in confidential mode. The page asks for a report bound to a random number it just made, and checks the report: Intel's signature, the model key and the number inside it, the exact software the hardware measured, and NVIDIA's signed verdict.</li>
