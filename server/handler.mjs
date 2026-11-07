@@ -180,7 +180,8 @@ export function createHandler(config) {
       return send(res, r.status, r.bytes, { 'content-type': r.type });
     }
 
-    const sig = /^\/api\/signature\/(chatcmpl-[A-Za-z0-9_-]{1,100})$/.exec(route);
+    // Completion ids come as "chatcmpl-..." or, from some NEAR AI models, as 32 bare hex digits.
+    const sig = /^\/api\/signature\/([A-Za-z0-9_-]{8,128})$/.exec(route);
     if (sig && req.method === 'GET') {
       lookups.take(ip);
       if (!live) {

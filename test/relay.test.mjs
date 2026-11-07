@@ -168,3 +168,22 @@ test('stand-in on serverless: the same seed gives the same key, and another inst
   assert.equal(b.signature(id, 'not-hashes').status, 404);
   assert.equal(b.signature('chatcmpl-real-id', hashes).status, 404, 'only stand-in ids');
 });
+
+test('signature lookups accept both id styles and forward them to NEAR AI with the key', async () => {
+  const seen = [];
+  const fake = async (url, init) => {
+    seen.push({ url: String(url), auth: init?.headers?.authorization });
+    return new Response(JSON.stringify({ text: 'x' }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+  const handler = createHandler({ model: MODEL, standIn, apiKey: 'test-key-0000-must-never-leave-the-server', fetch: fake });
+  const s = createServer(handler);
+  await new Promise((r) => s.listen(0, '127.0.0.1', r));
+  const b = `http://127.0.0.1:${s.address().port}`;
+  for (const id of ['795d56c196f14dc8afa41b35c2a55c96', 'chatcmpl-0123456789abcdef']) {
+    const r = await fetch(`${b}/api/signature/${id}`);
+    assert.equal(r.status, 200, id);
+  }
+  assert.equal((await fetch(`${b}/api/signature/..%2Fadmin`)).status, 404);
+  s.close();
+  assert.ok(seen.every((x) => x.url.includes('/signature/') && x.url.endsWith('?signing_algo=ed25519') && x.auth === 'Bearer test-key-0000-must-never-leave-the-server'));
+});
