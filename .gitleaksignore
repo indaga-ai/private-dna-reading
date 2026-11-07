@@ -1,0 +1,7 @@
+# gitleaks findings reviewed and allowed, by exact fingerprint (commit:file:rule:line). None is a secret:
+# - test/fixtures/e2ee-v3-ed25519.json: NEAR AI's published E2EE v3 test vector ("public deterministic test keys only").
+# - test/fixtures/attestation-*.json: public keys (OHTTP key configs and signing keys) inside NEAR AI Cloud's public attestation reports.
+# A new finding, or these files changed, gets a new fingerprint and fails the scan again.
+35f425f871ea5b73a009762fd29d4bed4d5a6b77:test/fixtures/attestation-ecdsa.json:generic-api-key:1
+35f425f871ea5b73a009762fd29d4bed4d5a6b77:test/fixtures/attestation-ed25519.json:generic-api-key:1
+35f425f871ea5b73a009762fd29d4bed4d5a6b77:test/fixtures/e2ee-v3-ed25519.json:generic-api-key:5
