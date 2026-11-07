@@ -145,3 +145,11 @@ test('static files: the page is served, and paths outside web/ are refused', asy
   }
   s.close();
 });
+
+test('hosted relay: the rewritten URL is restored to the path the browser asked for', async () => {
+  const { originalUrl } = await import('../api/relay.mjs');
+  assert.equal(originalUrl('/api/relay?__path=config'), '/api/config');
+  assert.equal(originalUrl('/api/relay?__path=attestation&nonce=ab'), '/api/attestation?nonce=ab');
+  assert.equal(originalUrl('/api/relay?nonce=ab&__path=pccs%2Ftdx%2Fcertification%2Fv4%2Ftcb'), '/api/pccs/tdx/certification/v4/tcb?nonce=ab');
+  assert.equal(originalUrl('/api/config'), '/api/config');
+});

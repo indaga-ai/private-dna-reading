@@ -154,5 +154,12 @@ input[type="text"] { font: inherit; font-size: 14px; padding: 9px 11px; border-r
 @media (max-width: 560px) {
   .step { padding: 16px; }
   .top nav { gap: 12px; }
-  th:nth-child(2), td.var { display: none; }
+  /* The trait table becomes one small card per trait: name and genotype on top, the result below. */
+  .table-scroll table, .table-scroll tbody, .table-scroll td { display: block; }
+  .table-scroll thead { display: none; }
+  .table-scroll tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .table-scroll td { border: 0; padding: 0; }
+  .table-scroll td.var { display: none; }
+  .table-scroll td.gt { grid-column: 2; grid-row: 1; text-align: right; }
+  .table-scroll td:last-child { grid-column: 1 / -1; }
 }

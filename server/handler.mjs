@@ -1,5 +1,9 @@
 // The relay. It serves the page and forwards four kinds of request to NEAR AI Cloud, adding the API key on the
 // way. It never sees a genotype: the browser encrypts the trait panel to the model's attested key before sending.
+//
+// NOTHING IS KEPT. No request body, reply or log of either is stored anywhere: each handler forwards the bytes and
+// returns. The only state is in memory: rate-limit counters (address and time, dropped after a day), a ten-minute
+// cache of Intel's public collateral, and in live payment mode the open deposit addresses (server/payments.mjs).
 // It also checks every reading request against the one fixed shape (model, roles, exact sizes, token cap) and
 // rate-limits it, so the demo cannot be used as a free general-purpose model endpoint.
 import { readFile } from 'node:fs/promises';
@@ -239,7 +243,7 @@ export function createHandler(config) {
     }
     send(res, 200, data, {
       'content-type': TYPES[extname(file)] || 'application/octet-stream',
-      'cache-control': extname(file) === '.html' ? 'no-store' : 'public, max-age=300',
+      'cache-control': 'no-cache',
     });
   }
 

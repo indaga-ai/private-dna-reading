@@ -1,5 +1,5 @@
 // The hosted demo's relay: the same handler as `npm start`, as one Vercel function. Static files are served by
-// Vercel from web/ (see vercel.json); every /api/* path is rewritten here.
+// Vercel from web/ (see vercel.json); every /api/* path is rewritten here with the original path in `__path`.
 import { createHandler } from '../server/handler.mjs';
 import { StandIn } from '../server/stand-in.mjs';
 import { Payments } from '../server/payments.mjs';
@@ -13,9 +13,17 @@ const handler = createHandler({
   pay: cfg.payments === 'off' ? null : new Payments({ mode: cfg.payments, priceUsdc: cfg.priceUsdc, recipient: cfg.recipient, secret }),
 });
 
+/** Restores the path the browser asked for from the rewrite's __path parameter. */
+export function originalUrl(rewritten) {
+  const url = new URL(rewritten, 'http://relay');
+  const path = url.searchParams.get('__path');
+  if (path === null) return rewritten;
+  url.searchParams.delete('__path');
+  const rest = url.searchParams.toString();
+  return `/api/${path.replace(/^\/+/, '')}${rest ? `?${rest}` : ''}`;
+}
+
 export default function relay(req, res) {
-  // Vercel keeps the original path in req.url after a rewrite; fall back to the forwarded one if it does not.
-  const original = req.headers['x-forwarded-uri'] || req.headers['x-vercel-original-path'];
-  if (original && !String(req.url).startsWith('/api/') ) req.url = original;
+  req.url = originalUrl(req.url);
   return handler(req, res);
 }

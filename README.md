@@ -9,6 +9,19 @@ An AI reads a few of your DNA traits inside sealed hardware, and you can check t
 
 Built for NEAR HACKATHON 2026. Tracks: **Privacy & Private AI** and **Real-World Money**.
 
+## The problem
+
+A raw DNA file is about as personal as data gets, and it can't be changed once it leaks. Today, getting an AI to explain one means uploading it, or pasting genotypes into a chatbot, and trusting whoever runs the server. This app removes that trust step, and what remains is shown, not promised:
+- the file is read in your browser;
+- only the six genotypes the reading needs leave the page, and they are encrypted;
+- your browser first checks the hardware evidence that the key they are encrypted to sits inside a confidential-computing TEE;
+- the operator in the middle, us, sees ciphertext only.
+
+**Nothing is kept on the server.** The relay stores no request, no reply and no log of either: [`server/handler.mjs`](server/handler.mjs) forwards bytes and returns. In memory only, it holds:
+- rate-limit counters (a client address and a time, dropped after a day);
+- a ten-minute cache of Intel's public collateral;
+- in live payment mode, the open deposit addresses.
+
 ## Try it in five minutes
 
 You need Node 20.19 or later. Steps 1 to 4 need no account, no key and no money.
@@ -27,6 +40,13 @@ With a key from [cloud.near.ai](https://cloud.near.ai), the reading is written b
 
 ```bash
 NEARAI_API_KEY=your-key npm start
+```
+
+The same reading without a browser, printing each step (read, check the hardware, encrypt, decrypt, check the signature):
+
+```bash
+NEARAI_API_KEY=your-key npm run reading
+NEARAI_API_KEY=your-key npm run reading -- path/to/your-raw-dna.txt
 ```
 
 To add the payment step with live prices and a "simulate" button (this is how the hosted demo runs):
