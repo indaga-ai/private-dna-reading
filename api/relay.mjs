@@ -9,7 +9,7 @@ const cfg = configFromEnv(process.env);
 const secret = process.env.PASS_SECRET ? Buffer.from(process.env.PASS_SECRET, 'hex') : undefined;
 const handler = createHandler({
   ...cfg,
-  standIn: new StandIn(cfg.model),
+  standIn: new StandIn(cfg.model, secret),
   pay: cfg.payments === 'off' ? null : new Payments({ mode: cfg.payments, priceUsdc: cfg.priceUsdc, recipient: cfg.recipient, secret }),
 });
 

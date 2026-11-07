@@ -153,3 +153,18 @@ test('hosted relay: the rewritten URL is restored to the path the browser asked 
   assert.equal(originalUrl('/api/relay?nonce=ab&__path=pccs%2Ftdx%2Fcertification%2Fv4%2Ftcb'), '/api/pccs/tdx/certification/v4/tcb?nonce=ab');
   assert.equal(originalUrl('/api/config'), '/api/config');
 });
+
+test('stand-in on serverless: the same seed gives the same key, and another instance can re-sign the hashes', () => {
+  const seed = new Uint8Array(32).fill(7);
+  const a = new StandIn(MODEL, seed);
+  const b = new StandIn(MODEL, seed);
+  assert.equal(a.publicKey, b.publicKey);
+  const id = 'chatcmpl-standin-0123456789abcdef01234567';
+  const hashes = `${'a'.repeat(64)}:${'b'.repeat(64)}`;
+  const r = b.signature(id, hashes);
+  assert.equal(r.status, 200);
+  const sig = JSON.parse(r.bytes.toString());
+  assert.equal(sig.text, `${MODEL}:${hashes}`);
+  assert.equal(b.signature(id, 'not-hashes').status, 404);
+  assert.equal(b.signature('chatcmpl-real-id', hashes).status, 404, 'only stand-in ids');
+});

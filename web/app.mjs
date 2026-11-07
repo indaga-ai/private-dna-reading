@@ -6,7 +6,7 @@ import { PANEL_RSIDS, callPanel, SAMPLES } from '../src/genome/panel.mjs';
 import { verifyModelAttestation, newNonce } from '../src/tee/attestation.mjs';
 import { quoteVerifier, gpuVerifier } from '../src/tee/hardware.mjs';
 import { newClientKeys, encryptMessages, decryptWith, e2eeHeaders } from '../src/tee/e2ee.mjs';
-import { verifyReplySignature } from '../src/tee/signature.mjs';
+import { verifyReplySignature, sha256Hex } from '../src/tee/signature.mjs';
 import { SYSTEM_PROMPT, userMessage, readingBody } from '../src/ai/prompt.mjs';
 import { strayTopics } from '../src/ai/check-reply.mjs';
 
@@ -301,9 +301,9 @@ function renderReadingText(text) {
 }
 
 // NEAR AI Cloud records the signature a moment after the reply; retry a 404 a few times, about a second apart.
-async function fetchSignature(id) {
+async function fetchSignature(id, standInHashes) {
   for (let i = 0; i < 6; i++) {
-    const r = await fetch(`api/signature/${encodeURIComponent(id)}`);
+    const r = await fetch(`api/signature/${encodeURIComponent(id)}${standInHashes ? `?hashes=${standInHashes}` : ''}`);
     if (r.status === 404) {
       await new Promise((ok) => setTimeout(ok, 1000));
       continue;
@@ -350,7 +350,7 @@ async function sendReading() {
     if (choice?.finish_reason === 'length') out.append(el('p', { class: 'status', text: 'The reading reached its length limit and may end mid-sentence.' }));
     const stray = strayTopics(text);
     if (stray.length) out.append(el('div', { class: 'verdict bad', text: `The AI's text strayed beyond traits (it mentions ${stray.join(', ')}). This app reads traits only: trust the fixed results in step 2, not that part of the text.` }));
-    const sig = await fetchSignature(reply.id);
+    const sig = await fetchSignature(reply.id, live ? null : `${sha256Hex(requestBytes)}:${sha256Hex(responseBytes)}`);
     const v = verifyReplySignature({ sig, model: state.config.model, requestBytes, responseBytes, key: signKey });
     renderChecks(out, v.checks);
     if (!live) out.append(el('div', { class: 'verdict bad', text: 'Stand-in mode: this server has no NEAR AI Cloud key, so the reply came from a local stand-in. Its key is not the attested one.' }));

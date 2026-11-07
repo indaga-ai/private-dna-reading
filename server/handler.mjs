@@ -184,7 +184,7 @@ export function createHandler(config) {
     if (sig && req.method === 'GET') {
       lookups.take(ip);
       if (!live) {
-        const r = cfg.standIn.signature(sig[1]);
+        const r = cfg.standIn.signature(sig[1], url.searchParams.get('hashes'));
         return send(res, r.status, r.bytes, { 'content-type': 'application/json' });
       }
       const q = new URLSearchParams({ signing_algo: cfg.signingAlgo });

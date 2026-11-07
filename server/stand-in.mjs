@@ -5,12 +5,15 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { decryptWith, encryptTo, requestFieldAad } from '../src/tee/e2ee.mjs';
 import { signedText } from '../src/tee/signature.mjs';
-import { bytesToHex, utf8ToBytes, randomBytes } from '../src/util/bytes.mjs';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex, utf8ToBytes, randomBytes, concatBytes } from '../src/util/bytes.mjs';
 
 export class StandIn {
-  constructor(model) {
+  // With a seed (the hosted demo passes its server secret), every serverless instance derives the same stand-in
+  // key, so a request can land on any instance.
+  constructor(model, seed) {
     this.model = model;
-    this.secretKey = ed25519.utils.randomSecretKey();
+    this.secretKey = seed ? sha256(concatBytes(seed, utf8ToBytes('stand-in-key-v1'))) : ed25519.utils.randomSecretKey();
     this.publicKey = bytesToHex(ed25519.getPublicKey(this.secretKey));
     this.signatures = new Map();
   }
@@ -69,8 +72,17 @@ export class StandIn {
     return { status: 200, bytes };
   }
 
-  signature(id) {
-    const s = this.signatures.get(id);
+  /**
+   * The stored signature, or, when the reply was made on another serverless instance, a fresh one over the hashes
+   * the page sends. That makes the stand-in sign whatever hashes it is given; harmless, because its key is not
+   * attested and the page labels everything it signs as the stand-in's.
+   */
+  signature(id, hashes) {
+    let s = this.signatures.get(id);
+    if (!s && /^chatcmpl-standin-[0-9a-f]{24}$/.test(id) && /^[0-9a-f]{64}:[0-9a-f]{64}$/.test(hashes || '')) {
+      const text = `${this.model}:${hashes}`;
+      s = { text, signature: bytesToHex(ed25519.sign(utf8ToBytes(text), this.secretKey)), signing_address: this.publicKey, signing_algo: 'ed25519', signature_kind: 'provider_tee' };
+    }
     return s ? { status: 200, bytes: Buffer.from(JSON.stringify(s)) } : { status: 404, bytes: Buffer.from(JSON.stringify({ error: { message: 'not found' } })) };
   }
 }
