@@ -59,7 +59,7 @@ async function readGenome(chunks, label) {
   if (!parsed.rows) throw new Error('No genotype rows found. Is this a raw DNA data file?');
   state.items = callPanel(parsed.found);
   state.source = label;
-  const measured = state.items.filter((i) => i.status === 'called').length;
+  const measured = state.items.filter((i) => i.status === 'called' || i.status === 'estimate').length;
   setStatus(status, `Read ${parsed.rows.toLocaleString()} rows${parsed.build ? ` (${parsed.build})` : ''} in ${ms} ms on this device. ${measured} of ${state.items.length} traits could be read.`);
   renderPanel();
   unlock('step-genome', true);

@@ -23,7 +23,9 @@ const snp = (rsid) => TRAITS.flatMap((t) => t.snps).find((s) => s.rsid === rsid)
 const hap = (name, i) => TAS2R38[name][i];
 const bitter = (a, b) => Object.fromEntries(['rs713598', 'rs1726866', 'rs10246939'].map((r, i) => [r, `${hap(a, i)}${hap(b, i)}`]));
 
-// Each person's panel genotypes (plus strand, as the raw files show them). null = "no call"; absent = not on chip.
+// Each person's panel genotypes (plus strand, as the raw files show them). null = a no-call; a missing key = the
+// marker is not in the file. Ada and Bo have every trait; Cyd shows the honest cases: a no-call, a missing marker,
+// and bitter taste estimated from one of its three positions.
 const PEOPLE = [
   {
     name: 'ada', format: '23andme', seed: 11,
@@ -35,7 +37,7 @@ const PEOPLE = [
   },
   {
     name: 'cyd', format: '23andme', seed: 33,
-    gt: { rs4988235: 'AA', rs671: null, rs12913832: 'AG', rs1815739: 'CC', ...bitter('PAV', 'PAV') },
+    gt: { rs4988235: 'AA', rs671: null, rs12913832: 'AG', rs1815739: 'CC', rs713598: 'GG', rs1726866: null, rs10246939: null },
   },
 ];
 
