@@ -9,6 +9,8 @@ An AI reads a few of your DNA traits inside sealed hardware, and you can check t
 
 Built for NEAR HACKATHON 2026. Tracks: **Privacy & Private AI** and **Real-World Money**.
 
+**Hosted demo:** https://private-dna-reading.vercel.app (the synthetic samples only, with simulated payment). Until the demo's NEAR AI Cloud key is set, the page says it is in stand-in mode; the hardware check is live either way.
+
 ## The problem
 
 A raw DNA file is about as personal as data gets, and it can't be changed once it leaks. Today, getting an AI to explain one means uploading it, or pasting genotypes into a chatbot, and trusting whoever runs the server. This app removes that trust step, and what remains is shown, not promised:
@@ -21,6 +23,8 @@ A raw DNA file is about as personal as data gets, and it can't be changed once i
 - rate-limit counters (a client address and a time, dropped after a day);
 - a ten-minute cache of Intel's public collateral;
 - in live payment mode, the open deposit addresses.
+
+On the hosted demo, the hosting platform (Vercel) keeps its own standard request logs: address, path and time, not bodies.
 
 ## Try it in five minutes
 
