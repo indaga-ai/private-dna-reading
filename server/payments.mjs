@@ -41,7 +41,8 @@ export class Payments {
     this.mode = mode;
     this.price = String(priceUsdc);
     this.amount = usdcUnits(priceUsdc);
-    this.recipient = recipient;
+    // NEAR Intents account ids are lower case; an EVM-style 0x id with capitals is a different (empty) account.
+    this.recipient = /^0x[0-9a-fA-F]{40}$/.test(recipient || '') ? recipient.toLowerCase() : recipient;
     this.jwt = oneClickJwt;
     this.secret = secret || randomBytes(32);
     this.fetch = fetch;
