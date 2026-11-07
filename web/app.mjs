@@ -8,6 +8,7 @@ import { quoteVerifier, gpuVerifier } from '../src/tee/hardware.mjs';
 import { newClientKeys, encryptMessages, decryptWith, e2eeHeaders } from '../src/tee/e2ee.mjs';
 import { verifyReplySignature } from '../src/tee/signature.mjs';
 import { SYSTEM_PROMPT, userMessage, readingBody } from '../src/ai/prompt.mjs';
+import { strayTopics } from '../src/ai/check-reply.mjs';
 
 const $ = (id) => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => {
@@ -325,6 +326,8 @@ async function sendReading() {
     out.lastChild.replaceWith(el('p', { class: 'status', text: 'Decrypted on this device with a key made for this visit. Checking the signature...' }));
     out.append(renderReadingText(text));
     if (choice?.finish_reason === 'length') out.append(el('p', { class: 'status', text: 'The reading reached its length limit and may end mid-sentence.' }));
+    const stray = strayTopics(text);
+    if (stray.length) out.append(el('div', { class: 'verdict bad', text: `The AI's text strayed beyond traits (it mentions ${stray.join(', ')}). This app reads traits only: trust the fixed results in step 2, not that part of the text.` }));
     const sig = await fetchSignature(reply.id);
     const v = verifyReplySignature({ sig, model: state.config.model, requestBytes, responseBytes, key: signKey });
     renderChecks(out, v.checks);

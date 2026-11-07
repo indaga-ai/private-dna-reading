@@ -30,9 +30,9 @@ export function userMessage(items) {
 }
 
 // Bounds the relay enforces. MAX_USER_BYTES covers the longest possible panel with room to spare; MAX_TOKENS
-// covers a 300-word reading.
+// covers a 300-word reading plus a little reasoning (at $0.50 per million output tokens, under a tenth of a cent).
 export const MAX_USER_BYTES = 4096;
-export const MAX_TOKENS = 900;
+export const MAX_TOKENS = 1200;
 export const TEMPERATURE = 0.3;
 export const systemPromptBytes = () => utf8ToBytes(SYSTEM_PROMPT).length;
 
