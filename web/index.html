@@ -3,9 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Private DNA Reading</title>
+  <title>Private DNA Reading · Indaga</title>
   <meta name="description" content="An AI reads a few DNA traits inside sealed hardware. Your file stays on this page; the genotypes it needs are encrypted to a key that only the verified hardware holds.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/Geist-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
   <script type="module" src="dist/app.js"></script>
 </head>
@@ -13,8 +14,18 @@
   <header class="top">
     <div class="wrap">
       <div class="brand">
-        <img src="icon.svg" alt="" width="28" height="28">
-        <span>Private DNA Reading</span>
+        <a class="logo" href="https://indaga.ai" rel="noopener" aria-label="Indaga">
+          <!-- The Indaga mark: the site header's dial. Ring, ticks, hub and hand take the ink; the arc is iris. -->
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M16 3a13 13 0 0 1 9.2 22.2" stroke="#6878f3" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M16 4.5v2.2M27.5 16h-2.2M16 27.5v-2.2M4.5 16h2.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="1.7" fill="currentColor"/>
+            <path d="M16 16l4.5-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <span class="wordmark">Indaga</span>
+        </a>
+        <span class="product">Private DNA Reading</span>
       </div>
       <nav>
         <a href="#how">How it works</a>
@@ -25,10 +36,22 @@
 
   <main class="wrap">
     <section class="intro">
-      <h1>An AI reads your DNA traits inside sealed hardware.</h1>
-      <p class="lede">Your raw DNA file is read on this page and never uploaded. Only a handful of trait genotypes leave it, encrypted to a key that this page first checks is held inside a confidential-computing chip. The reply comes back encrypted to this page and signed by that key.</p>
-      <p id="mode-banner" class="banner" hidden></p>
+      <div>
+        <p class="overline">Built at NEAR HACKATHON · open source</p>
+        <h1>An AI reads your DNA traits inside sealed hardware.</h1>
+        <p class="lede">Your raw DNA file is read on this page and never uploaded. Only a handful of trait genotypes leave it, encrypted to a key that this page first checks is held inside a confidential-computing chip. The reply comes back encrypted to this page and signed by that key.</p>
+      </div>
+      <figure class="art hero-art">
+        <img src="art/wgs.jpg" alt="A glass DNA double helix under a magnifying glass" width="1400" height="933">
+      </figure>
     </section>
+    <figure class="band">
+      <picture>
+        <source srcset="art/helix-night.jpg" media="(prefers-color-scheme: dark)">
+        <img src="art/helix-day.jpg" alt="" width="760" height="254">
+      </picture>
+    </figure>
+    <p id="mode-banner" class="banner" hidden></p>
 
     <ol class="steps">
       <li class="step" id="step-genome">
@@ -53,6 +76,7 @@
       </li>
 
       <li class="step" id="step-tee" data-locked>
+        <figure class="step-art" data-art="vault" hidden><img alt="A sealed glass chip enclosure holding a glowing DNA ribbon"></figure>
         <div class="step-head"><span class="num">3</span><h2>Check the sealed hardware</h2></div>
         <p class="hint">This page asks NEAR AI Cloud for a fresh hardware report, with a random number only this page knows, and checks it before trusting the model's key.</p>
         <button id="check-tee" class="primary" disabled>Check the hardware</button>
@@ -60,11 +84,13 @@
       </li>
 
       <li class="step" id="step-pay" data-locked hidden>
+        <figure class="step-art" data-art="coins" hidden><img alt="Glass coins of different kinds passing through a prism and leaving as one"></figure>
         <div class="step-head"><span class="num">4</span><h2>Pay with any coin</h2></div>
         <div id="pay"></div>
       </li>
 
       <li class="step" id="step-reading" data-locked>
+        <figure class="step-art" data-art="cipher" hidden><img alt="A DNA ribbon turning into glass tiles that flow into a sealed cube"></figure>
         <div class="step-head"><span class="num" id="reading-num">4</span><h2>Your reading</h2></div>
         <button id="send" class="primary" disabled>Encrypt and send</button>
         <div id="reading" aria-live="polite"></div>
@@ -74,11 +100,11 @@
     <section id="how" class="how">
       <h2>How it works</h2>
       <ol>
-        <li><strong>Your file stays here.</strong> The page reads the file in your browser and keeps only the eight variants in the panel. Its security policy lets it talk to its own server only.</li>
-        <li><strong>The hardware is checked first.</strong> NEAR AI Cloud runs the model inside an Intel TDX confidential VM with an NVIDIA GPU in confidential mode. The page asks for a report bound to a random number it just made, and checks the report: Intel's signature, the model key and the number inside it, and the exact software list the hardware measured.</li>
-        <li><strong>Encrypted to that key.</strong> The panel is encrypted (X25519, XChaCha20-Poly1305) to the key the hardware vouched for. Our server and NEAR's gateway pass on ciphertext they cannot read.</li>
+        <li><strong>Your file stays here.</strong> The page reads the file in your browser and keeps only the eight variants in the panel. Its security policy lets it talk only to its own server, plus NVIDIA's public key list.</li>
+        <li><strong>The hardware is checked first.</strong> NEAR AI Cloud runs the model inside an Intel TDX confidential VM with NVIDIA GPUs in confidential mode. The page asks for a report bound to a random number it just made, and checks the report: Intel's signature, the model key and the number inside it, the exact software the hardware measured, and NVIDIA's signed verdict.</li>
+        <li><strong>Encrypted to that key.</strong> The panel is encrypted (X25519, XChaCha20-Poly1305, NEAR AI's E2EE version 3) to the key the hardware vouched for. Our server and NEAR's gateway pass on ciphertext they cannot read.</li>
         <li><strong>Signed reply.</strong> The model encrypts its reply to a key this page made for this visit, and signs a hash of the exact request and reply. The page checks that signature against the attested key.</li>
-        <li><strong>Nothing is kept.</strong> Nothing is stored on our server. Close the tab and the keys are gone.</li>
+        <li><strong>Nothing is kept.</strong> Our server stores no request or reply. Close the tab and the keys are gone.</li>
       </ol>
       <h3>What this does not prove</h3>
       <ul>
@@ -91,7 +117,8 @@
   </main>
 
   <footer class="wrap foot">
-    <p>Built by <a href="https://indaga.ai" rel="noopener">Indaga</a> for NEAR HACKATHON 2026. Open source under the MIT licence. Private inference by <a href="https://near.ai" rel="noopener">NEAR AI Cloud</a>; payments through NEAR Intents.</p>
+    <p>Built by <a href="https://indaga.ai" rel="noopener">Indaga</a> for NEAR HACKATHON 2026. This open-source demo is separate from Indaga's DNA report, which analyses DNA on Indaga's own server.</p>
+    <p>Private inference by <a href="https://near.ai" rel="noopener">NEAR AI Cloud</a>; payments through NEAR Intents. Code under the MIT licence; the Indaga name, logo and illustrations are Indaga's and not part of it.</p>
   </footer>
 </body>
 </html>

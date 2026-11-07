@@ -167,4 +167,4 @@ NEAR AI's [inference-sdk](https://github.com/nearai/inference-sdk) (MIT) was the
 
 Built by [Indaga](https://indaga.ai). This is a separate open-source demo. Indaga's paid DNA report works differently: it analyses DNA on Indaga's own server. The privacy properties described here are this demo's.
 
-Licence: MIT. Not medical advice.
+Licence: MIT for the code. The Indaga name, logo and illustrations, and the fonts (SIL OFL), are not part of it: see [NOTICE](NOTICE). Not medical advice.

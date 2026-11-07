@@ -96,9 +96,20 @@ async function loadFile(file) {
 
 // ---- Step 2: what leaves the page -----------------------------------------------------------------------------
 
+// The illustrated report's art (and new art in the same style) beside each trait; a missing image falls back to a dot.
+const TRAIT_ART = { lactase: 'lactase', flush: 'flush', earwax: 'ear', eyes: 'eye', muscle: 'muscle', bitter: 'taste' };
+
+function traitArt(id) {
+  const name = TRAIT_ART[id];
+  if (!name) return el('span', { class: 'trait-dot', 'aria-hidden': 'true' });
+  const img = el('img', { src: `art/${name}.jpg`, alt: '', loading: 'lazy', width: 52, height: 52 });
+  img.addEventListener('error', () => img.replaceWith(el('span', { class: 'trait-dot', 'aria-hidden': 'true' })));
+  return img;
+}
+
 function renderPanel() {
   const rows = state.items.map((i) => el('tr', {},
-    el('td', {}, el('strong', { text: i.trait }), el('div', { class: 'muted', text: i.gene })),
+    el('td', {}, el('div', { class: 'trait' }, traitArt(i.id), el('div', {}, el('strong', { text: i.trait }), el('div', { class: 'muted', text: i.gene })))),
     el('td', { class: 'var', text: i.variant }),
     el('td', { class: 'gt', text: i.genotype ?? '—' }),
     el('td', {}, i.result, i.caveat ? el('div', { class: 'muted', text: i.caveat }) : null),
@@ -395,6 +406,11 @@ async function start() {
   else {
     $('own-file').hidden = false;
     $('file-input').addEventListener('change', (e) => e.target.files[0] && loadFile(e.target.files[0]));
+  }
+  for (const fig of document.querySelectorAll('[data-art]')) {
+    const img = fig.querySelector('img');
+    img.addEventListener('load', () => { fig.hidden = false; });
+    img.src = `art/${fig.dataset.art}.jpg`;
   }
   $('check-tee').addEventListener('click', checkHardware);
   $('send').addEventListener('click', sendReading);

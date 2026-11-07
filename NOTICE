@@ -1,0 +1,9 @@
+Private DNA Reading
+Code: MIT licence (see LICENSE).
+
+Not covered by the MIT licence:
+- The Indaga name and logo (the dial in web/index.html and web/icon.svg) and the illustrations in web/art/ are
+  Indaga's (CryptoSvit). The illustrations come from Indaga's illustrated DNA report, or were drawn in the same
+  style for this demo.
+- The fonts in web/fonts/ are under the SIL Open Font License 1.1: Geist and Geist Mono (Vercel, OFL-Geist.txt)
+  and Space Grotesk (The Space Grotesk Project Authors, OFL-SpaceGrotesk.txt).
