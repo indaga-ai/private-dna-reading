@@ -9,7 +9,7 @@ An AI reads a few of your DNA traits inside sealed hardware, and you can check t
 
 Built for NEAR HACKATHON 2026. Tracks: **Privacy & Private AI** and **Real-World Money**.
 
-**Hosted demo:** https://private-dna-reading.vercel.app (the synthetic samples only, with simulated payment). Until the demo's NEAR AI Cloud key is set, the page says it is in stand-in mode; the hardware check is live either way.
+**Hosted demo:** https://private-dna.indaga.ai (the synthetic samples only, with simulated payment). Until the demo's NEAR AI Cloud key is set, the page says it is in stand-in mode; the hardware check is live either way.
 
 ## The problem
 
