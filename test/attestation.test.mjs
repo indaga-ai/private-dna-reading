@@ -98,3 +98,14 @@ test('ecdsaAddress matches the address NEAR reports for its key', () => {
   const m = f.report.model_attestations[0];
   assert.equal(ecdsaAddress(m.signing_public_key), m.signing_address.toLowerCase());
 });
+
+test('the gateway attestation is checked too, and a tampered one fails the whole check', async () => {
+  const f = load('ed25519');
+  const good = await verifyModelAttestation(f.report, { model: f.model, nonce: f.nonce });
+  assert.equal(byId(good).gateway, true);
+  const report = structuredClone(f.report);
+  report.gateway_attestation.info.tcb_info.app_compose += ' ';
+  const bad = await verifyModelAttestation(report, { model: f.model, nonce: f.nonce });
+  assert.equal(byId(bad).gateway, false);
+  assert.equal(bad.ok, false);
+});

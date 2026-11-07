@@ -89,6 +89,52 @@ function check(list, id, label, ok, detail, where = 'this device') {
 }
 
 /**
+ * NEAR's gateway, which routes the request, runs in a TEE too. It only ever sees ciphertext, so this is not what
+ * protects the genotypes; it is checked the same way (nonce, key binding, software list, boot log, Intel) because
+ * NEAR's own SDK does, and a failure here is reported like any other.
+ */
+export async function verifyGatewayAttestation(gw, { nonce, verifyQuote }) {
+  const want = cleanHex(nonce, 'nonce');
+  const problems = [];
+  if (!gw) return { ok: false, detail: 'no gateway attestation in the report' };
+  if (gw.request_nonce !== want) problems.push('it does not answer our nonce');
+  let q = null;
+  try {
+    q = parseTdxQuote(gw.intel_quote);
+  } catch (e) {
+    problems.push(`its quote is unreadable (${e.message})`);
+  }
+  if (q) {
+    const rd = bytesToHex(q.reportData);
+    if (gw.report_data && cleanHex(gw.report_data) !== rd) problems.push('its report_data field differs from its quote');
+    if (rd.slice(64) !== want) problems.push('its quote does not hold our nonce');
+    const id = cleanHex(String(gw.signing_address || ''));
+    const bound = gw.signing_algo === 'ed25519' ? rd.slice(0, 64) === id : rd.slice(0, 64) === id.padEnd(64, '0');
+    if (!bound) problems.push('its quote does not bind its signing key');
+    if (q.debug) problems.push('it is in debug mode');
+    const compose = gw.info?.tcb_info?.app_compose || '';
+    if (!compose || bytesToHex(q.mrConfigId) !== expectedMrConfigId(compose)) problems.push('its software list is not the measured one');
+    try {
+      if (!equalBytes(replayRtmr(gw.event_log, 3), q.rtmr3)) problems.push('its boot log does not replay');
+    } catch {
+      problems.push('its boot log is unreadable');
+    }
+    if (verifyQuote && !problems.length) {
+      try {
+        const r = await verifyQuote(q.bytes);
+        if (!r.ok) problems.push(`Intel did not accept its quote (${r.status})`);
+      } catch (e) {
+        problems.push(`its quote could not be checked with Intel (${e.message})`);
+      }
+    }
+  }
+  return {
+    ok: problems.length === 0,
+    detail: problems.length ? `Not trusted: ${problems.join('; ')}.` : `Nonce, key binding, software list and boot log check out${verifyQuote ? ', and Intel signed its quote' : ''}. It routes ciphertext only.`,
+  };
+}
+
+/**
  * @param report   the JSON from GET /v1/attestation/report
  * @param opts     { model, nonce, signingAlgo: 'ed25519' | 'ecdsa', verifyQuote?, verifyGpu? }
  * @returns { ok, checks[], key: { algo, publicKey, address }, tee: { instanceId, composeHash, images, ... } }
@@ -197,6 +243,9 @@ export async function verifyModelAttestation(report, opts) {
   } else {
     check(checks, 'nvidia', 'NVIDIA confirms the GPU runs in confidential mode', null, 'not checked here');
   }
+
+  const gateway = await verifyGatewayAttestation(report.gateway_attestation, { nonce: wantNonce, verifyQuote });
+  check(checks, 'gateway', 'NEAR\'s gateway runs in a TEE too', gateway.ok, gateway.detail);
 
   const required = ['model', 'nonce-echo', 'quote-format', 'not-debug', 'report-nonce', 'report-key', 'compose-bound', 'rtmr3', 'gpu-nonce'];
   const ok = required.every((id) => checks.find((c) => c.id === id)?.ok === true)
