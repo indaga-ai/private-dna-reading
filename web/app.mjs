@@ -1,5 +1,6 @@
-// The page. Everything here runs in the browser: reading the DNA file, working out the trait results, checking the
-// hardware report, encrypting, decrypting and checking the signature. The server only relays ciphertext.
+// The page. Everything here runs in the browser: reading the DNA file and the watch data, working out the trait
+// results and the weekly averages, checking the hardware report, encrypting, decrypting and checking the signature.
+// The server only relays ciphertext.
 import { extractPanel } from '../src/genome/parse.mjs';
 import { isZip, openRawDataInZip, chunksOf } from '../src/genome/unzip.mjs';
 import { PANEL_RSIDS, callPanel, SAMPLES } from '../src/genome/panel.mjs';
@@ -8,6 +9,7 @@ import { quoteVerifier, gpuVerifier } from '../src/tee/hardware.mjs';
 import { newClientKeys, encryptMessages, decryptWith, e2eeHeaders } from '../src/tee/e2ee.mjs';
 import { verifyReplySignature, sha256Hex } from '../src/tee/signature.mjs';
 import { SYSTEM_PROMPT, userMessage, readingBody } from '../src/ai/prompt.mjs';
+import { parseWatch, summarizeWatch, togetherNotes, WATCH_SAMPLES } from '../src/health/watch.mjs';
 import { strayTopics } from '../src/ai/check-reply.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -23,7 +25,7 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 
-const state = { config: null, items: null, source: null, attestation: null, key: null, pass: null, busy: false };
+const state = { config: null, items: null, source: null, watch: null, together: [], watchSource: null, attestation: null, key: null, pass: null, busy: false };
 
 function unlock(stepId, done = false) {
   const s = $(stepId);
@@ -50,7 +52,7 @@ async function api(path, init) {
 
 // ---- Step 1: the genome -------------------------------------------------------------------------------------
 
-async function readGenome(chunks, label) {
+async function readGenome(chunks, label, sample = null) {
   const status = $('genome-status');
   setStatus(status, `Reading ${label} on this device...`);
   const t0 = performance.now();
@@ -61,8 +63,9 @@ async function readGenome(chunks, label) {
   state.source = label;
   const measured = state.items.filter((i) => i.status === 'called' || i.status === 'estimate').length;
   setStatus(status, `Read ${parsed.rows.toLocaleString()} rows${parsed.build ? ` (${parsed.build})` : ''} in ${ms} ms on this device. ${measured} of ${state.items.length} traits could be read.`);
-  renderPanel();
   unlock('step-genome', true);
+  await offerWatch(sample);
+  renderPanel();
   unlock('step-panel', true);
   unlock('step-tee');
   $('check-tee').disabled = false;
@@ -74,7 +77,7 @@ async function loadSample(sample, button) {
   try {
     const r = await fetch(`samples/${sample.file}`);
     if (!r.ok) throw new Error(`could not load the sample (HTTP ${r.status})`);
-    await readGenome(chunksOf(r.body.pipeThrough(new TextDecoderStream())), `${sample.name}'s sample file`);
+    await readGenome(chunksOf(r.body.pipeThrough(new TextDecoderStream())), `${sample.name}'s sample file`, sample);
   } catch (e) {
     setStatus($('genome-status'), e.message, true);
   }
@@ -94,7 +97,78 @@ async function loadFile(file) {
   }
 }
 
-// ---- Step 2: what leaves the page -----------------------------------------------------------------------------
+// ---- Step 2: the watch data ----------------------------------------------------------------------------------------
+
+// Four weeks of a watch's daily numbers, reduced here to weekly averages (src/health/watch.mjs). A sample person comes
+// with made-up watch data; your own export is read only when the app runs on your computer, like your own DNA file.
+function useWatch(text, label) {
+  const rows = parseWatch(text);
+  if (rows.length < 28) throw new Error(`The watch data has ${rows.length} days; four weeks (28 days) are needed.`);
+  state.watch = summarizeWatch(rows);
+  state.together = togetherNotes(state.items, state.watch);
+  state.watchSource = label;
+  const read = state.watch.filter((w) => w.average !== null).length;
+  setStatus($('watch-status'), `Read ${rows.length} days of ${label} on this device: ${read} of ${state.watch.length} measures, as weekly averages.`);
+  unlock('step-watch', true);
+}
+
+function leaveWatchOut() {
+  state.watch = null;
+  state.together = [];
+  state.watchSource = null;
+  setStatus($('watch-status'), 'No watch data: the reading will cover your DNA only.');
+  unlock('step-watch', true);
+}
+
+function renderWatchChoice(buttons) {
+  $('watch-choice').replaceChildren(...buttons.map(([label, small, pressed, onclick]) => {
+    const b = el('button', { class: 'sample', type: 'button', 'aria-pressed': String(pressed) }, el('strong', { text: label }), el('small', { text: small }));
+    b.addEventListener('click', async () => {
+      for (const x of $('watch-choice').querySelectorAll('.sample')) x.setAttribute('aria-pressed', String(x === b));
+      try {
+        await onclick();
+      } catch (e) {
+        setStatus($('watch-status'), e.message, true);
+      }
+      renderPanel();
+      resetReading();
+    });
+    return b;
+  }));
+}
+
+async function offerWatch(sample) {
+  unlock('step-watch');
+  const file = sample && WATCH_SAMPLES[sample.name];
+  if (file) {
+    const load = async () => {
+      const r = await fetch(`samples/${file}`);
+      if (!r.ok) throw new Error(`could not load the watch sample (HTTP ${r.status})`);
+      useWatch(await r.text(), `${sample.name}'s watch (made up)`);
+    };
+    renderWatchChoice([[`${sample.name}'s watch`, 'Four weeks · made up', true, load], ['Leave it out', 'DNA only', false, async () => leaveWatchOut()]]);
+    try {
+      await load();
+    } catch (e) {
+      setStatus($('watch-status'), e.message, true);
+    }
+  } else {
+    renderWatchChoice([['Leave it out', 'DNA only', !state.watch, async () => leaveWatchOut()]]);
+    if (!state.watch) leaveWatchOut();
+  }
+}
+
+async function loadWatchFile(file) {
+  try {
+    useWatch(await file.text(), `${file.name} (${fmtBytes(file.size)})`);
+  } catch (e) {
+    setStatus($('watch-status'), e.message, true);
+  }
+  renderPanel();
+  resetReading();
+}
+
+// ---- Step 3: what leaves the page -----------------------------------------------------------------------------
 
 // The illustrated report's art (and new art in the same style) beside each trait; a missing image falls back to a dot.
 const TRAIT_ART = { lactase: 'lactase', flush: 'flush', earwax: 'ear', eyes: 'eye', muscle: 'muscle', bitter: 'taste' };
@@ -119,11 +193,25 @@ function renderPanel() {
   const table = el('div', { class: 'table-scroll' }, el('table', {},
     el('thead', {}, el('tr', {}, el('th', { text: 'Trait' }), el('th', { text: 'Variant' }), el('th', { text: 'Genotype' }), el('th', { text: 'Result' }))),
     el('tbody', {}, rows)));
-  const payload = el('details', {}, el('summary', { text: 'The exact text that will be encrypted' }), el('pre', { text: userMessage(state.items) }));
-  $('panel').replaceChildren(table, payload);
+  const parts = [table];
+  if (state.watch) {
+    const fmt = (v) => (v === null ? '—' : v.toLocaleString('en-US'));
+    const wrows = state.watch.map((w) => el('tr', {},
+      el('td', {}, el('strong', { text: w.measure }), el('div', { class: 'muted', text: w.unit })),
+      ...w.weeks.map((v) => el('td', { class: 'gt', text: fmt(v) })),
+      el('td', { class: 'gt', text: fmt(w.average) }),
+      el('td', { text: w.note })));
+    parts.push(el('div', { class: 'table-scroll' }, el('table', { class: 'watch' },
+      el('thead', {}, el('tr', {}, el('th', { text: 'Measure' }), ...['Week 1', 'Week 2', 'Week 3', 'Week 4'].map((t) => el('th', { text: t })), el('th', { text: 'Average' }), el('th', { text: 'Note' }))),
+      el('tbody', {}, wrows))));
+    for (const t of state.together) parts.push(el('p', { class: 'together' }, el('strong', { text: `${t.link}: ` }), t.note));
+  }
+  const text = userMessage(state.items, state.watch, state.together);
+  parts.push(el('details', {}, el('summary', { text: `The exact text that will be encrypted (${fmtBytes(new TextEncoder().encode(text).length)})` }), el('pre', { text })));
+  $('panel').replaceChildren(...parts);
 }
 
-// ---- Step 3: the hardware check -------------------------------------------------------------------------------
+// ---- Step 4: the hardware check -------------------------------------------------------------------------------
 
 // The hardware checks, grouped so they read as five questions.
 const GROUPS = [
@@ -216,7 +304,7 @@ async function checkHardware() {
   }
 }
 
-// ---- Step 4: payment ------------------------------------------------------------------------------------------
+// ---- Step 5: payment ------------------------------------------------------------------------------------------
 
 async function renderPay() {
   const box = $('pay');
@@ -292,7 +380,7 @@ async function pollPayment(address, status) {
   }
 }
 
-// ---- Step 5: the reading --------------------------------------------------------------------------------------
+// ---- Step 6: the reading --------------------------------------------------------------------------------------
 
 function resetReading() {
   $('reading').replaceChildren();
@@ -338,7 +426,7 @@ async function sendReading() {
   const signKey = live ? state.key : { algo: 'ed25519', publicKey: modelKey, address: modelKey, standIn: true };
   try {
     const client = newClientKeys();
-    const messages = encryptMessages(modelKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMessage(state.items) }]);
+    const messages = encryptMessages(modelKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMessage(state.items, state.watch, state.together) }]);
     const requestBytes = new TextEncoder().encode(JSON.stringify(readingBody(state.config.model, messages)));
     out.replaceChildren(
       el('details', { open: true }, el('summary', { text: `What our server and NEAR's gateway see: ${fmtBytes(requestBytes.length)} of ciphertext` }),
@@ -364,7 +452,7 @@ async function sendReading() {
     out.append(renderReadingText(text));
     if (choice?.finish_reason === 'length') out.append(el('p', { class: 'status', text: 'The reading reached its length limit and may end mid-sentence.' }));
     const stray = strayTopics(text);
-    if (stray.length) out.append(el('div', { class: 'verdict bad', text: `The AI's text strayed beyond traits (it mentions ${stray.join(', ')}). This app reads traits only: trust the fixed results in step 2, not that part of the text.` }));
+    if (stray.length) out.append(el('div', { class: 'verdict bad', text: `The AI's text strayed beyond this reading (it mentions ${stray.join(', ')}). This app reads traits and watch trends only: trust the fixed results in step 3, not that part of the text.` }));
     const sig = await fetchSignature(reply.id, live ? null : `${sha256Hex(requestBytes)}:${sha256Hex(responseBytes)}`);
     const v = verifyReplySignature({ sig, model: state.config.model, requestBytes, responseBytes, key: signKey });
     decrypted.textContent = 'Decrypted on this device with a key made for this visit.';
@@ -397,7 +485,7 @@ async function start() {
   }
   if (c.payments !== 'off') {
     $('step-pay').hidden = false;
-    $('reading-num').textContent = '5';
+    $('reading-num').textContent = '6';
   }
   $('samples').replaceChildren(...SAMPLES.map((s) => {
     const b = el('button', { class: 'sample', type: 'button', 'aria-pressed': 'false' }, el('strong', { text: s.name }), el('small', { text: s.blurb }));
@@ -408,6 +496,8 @@ async function start() {
   else {
     $('own-file').hidden = false;
     $('file-input').addEventListener('change', (e) => e.target.files[0] && loadFile(e.target.files[0]));
+    $('watch-file').hidden = false;
+    $('watch-input').addEventListener('change', (e) => e.target.files[0] && loadWatchFile(e.target.files[0]));
   }
   $('check-tee').addEventListener('click', checkHardware);
   $('send').addEventListener('click', sendReading);

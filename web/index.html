@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Private DNA Reading · Indaga</title>
-  <meta name="description" content="An AI reads a few DNA traits inside sealed hardware. Your file stays on this page; the genotypes it needs are encrypted to a key that only the verified hardware holds.">
+  <title>Private Health Reading · Indaga</title>
+  <meta name="description" content="An AI reads a few DNA traits and four weeks of your watch data inside sealed hardware. Your files stay on this page; the few results it needs are encrypted to a key that only the verified hardware holds.">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="preload" href="fonts/Geist-Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
@@ -25,7 +25,7 @@
           </svg>
           <span class="wordmark">Indaga</span>
         </a>
-        <span class="product">Private DNA Reading</span>
+        <span class="product">Private Health Reading</span>
       </div>
       <nav>
         <a href="#how">How it works</a>
@@ -38,8 +38,8 @@
     <section class="intro">
       <div class="intro-text">
         <p class="overline">Built at NEAR HACKATHON · open source</p>
-        <h1>An AI reads your DNA traits inside sealed hardware.</h1>
-        <p class="lede">Your raw DNA file is read on this page and never uploaded. Only a handful of trait genotypes leave it, encrypted to a key that this page first checks is held inside a confidential-computing chip. The reply comes back encrypted to this page and signed by that key.</p>
+        <h1>An AI reads your DNA and your watch data inside sealed hardware.</h1>
+        <p class="lede">Your raw DNA file and your watch export are read on this page and never uploaded. Only a handful of trait genotypes and four weekly averages leave it, encrypted to a key that this page first checks is held inside a confidential-computing chip. The reply comes back encrypted to this page and signed by that key. It is a wellness reading: your genome says what tends to be, your watch what is happening now.</p>
       </div>
       <picture class="hero-bg">
         <source srcset="art/hero-night.jpg" media="(prefers-color-scheme: dark)">
@@ -70,15 +70,29 @@
         <div id="genome-status" class="status" aria-live="polite"></div>
       </li>
 
+      <li class="step" id="step-watch" data-locked>
+        <div class="step-head"><span class="num">2</span><h2>Add four weeks of watch data</h2></div>
+        <p class="hint">Sleep, resting heart rate, heart rate variability and steps, one row a day. The sample people come with made-up watch data. Only four weekly averages per measure leave this page, encrypted.</p>
+        <div id="watch-choice" class="samples"></div>
+        <div id="watch-file" class="own-file" hidden>
+          <label class="file-button">
+            <input id="watch-input" type="file" accept=".csv,.json">
+            <span>Use your own watch export</span>
+          </label>
+          <span class="hint">CSV or JSON with date, sleep_hours, resting_hr, hrv_ms and steps, one row a day. Read on this device only.</span>
+        </div>
+        <div id="watch-status" class="status" aria-live="polite"></div>
+      </li>
+
       <li class="step" id="step-panel" data-locked>
-        <div class="step-head"><span class="num">2</span><h2>What leaves this page</h2></div>
-        <p class="hint">These lines are all that is sent, and they are encrypted first. The rest of the file stays here. Each result below is worked out on this page from a fixed table; the AI only writes it up.</p>
+        <div class="step-head"><span class="num">3</span><h2>What leaves this page</h2></div>
+        <p class="hint">These lines are all that is sent, and they are encrypted first. The rest of both files stays here. Each result and note below is worked out on this page from a fixed table; the AI only writes it up.</p>
         <div id="panel"></div>
       </li>
 
       <li class="step" id="step-tee" data-locked>
         <figure class="step-art"><picture><source srcset="art/vault-night.jpg" media="(prefers-color-scheme: dark)"><img src="art/vault.jpg" alt="A sealed glass chip enclosure holding a glowing DNA ribbon" width="900" height="600" loading="lazy"></picture></figure>
-        <div class="step-head"><span class="num">3</span><h2>Check the sealed hardware</h2></div>
+        <div class="step-head"><span class="num">4</span><h2>Check the sealed hardware</h2></div>
         <p class="hint">This page asks NEAR AI Cloud for a fresh hardware report, with a random number only this page knows, and checks it before trusting the model's key.</p>
         <button id="check-tee" class="primary" disabled>Check the hardware</button>
         <div id="tee" aria-live="polite"></div>
@@ -86,13 +100,13 @@
 
       <li class="step" id="step-pay" data-locked hidden>
         <figure class="step-art"><picture><source srcset="art/pay-coin-night.jpg" media="(prefers-color-scheme: dark)"><img src="art/pay-coin.jpg" alt="A glass coin with a DNA helix inside it" width="900" height="600" loading="lazy"></picture></figure>
-        <div class="step-head"><span class="num">4</span><h2>Pay with any coin</h2></div>
+        <div class="step-head"><span class="num">5</span><h2>Pay with any coin</h2></div>
         <div id="pay"></div>
       </li>
 
       <li class="step" id="step-reading" data-locked>
         <figure class="step-art"><picture><source srcset="art/cipher-night.jpg" media="(prefers-color-scheme: dark)"><img src="art/cipher.jpg" alt="A DNA ribbon turning into glass tiles that flow into a sealed cube" width="900" height="600" loading="lazy"></picture></figure>
-        <div class="step-head"><span class="num" id="reading-num">4</span><h2>Your reading</h2></div>
+        <div class="step-head"><span class="num" id="reading-num">5</span><h2>Your reading</h2></div>
         <button id="send" class="primary" disabled>Encrypt and send</button>
         <div id="reading" aria-live="polite"></div>
       </li>
@@ -103,7 +117,7 @@
       <div class="flow" role="img" aria-label="Your browser sends ciphertext through our relay and NEAR AI's gateway to the model inside a TEE; only the browser and the TEE can read it.">
         <div class="node">
           <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="6" width="24" height="18" rx="3"/><path d="M4 11h24M8 8.6h.01M11 8.6h.01"/><path d="M13 28h6M16 24v4"/></svg>
-          <b>Your browser</b><span>Reads the file, checks the hardware, encrypts, decrypts and verifies.</span>
+          <b>Your browser</b><span>Reads both files, checks the hardware, encrypts, decrypts and verifies.</span>
         </div>
         <div class="link"><span class="chip"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>ciphertext</span></div>
         <div class="node">
@@ -118,19 +132,19 @@
         <div class="link"><span class="chip"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>ciphertext</span></div>
         <div class="node tee">
           <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="8" y="8" width="16" height="16" rx="3"/><path d="M12 3v5M16 3v5M20 3v5M12 24v5M16 24v5M20 24v5M3 12h5M3 16h5M3 20h5M24 12h5M24 16h5M24 20h5"/><path d="M13 16.5l2 2 4-4.5"/></svg>
-          <b>The model, in a TEE</b><span>Intel TDX and NVIDIA GPUs in confidential mode. The only place the genotypes are read.</span>
+          <b>The model, in a TEE</b><span>Intel TDX and NVIDIA GPUs in confidential mode. The only place the genotypes and averages are read.</span>
         </div>
       </div>
       <ol class="proofs">
         <li><span class="pn">1</span><b>Proof first.</b> Before anything is sent, your browser checks a fresh hardware report bound to its own random number: Intel's signature, NVIDIA's verdict, the model's key.</li>
-        <li><span class="pn">2</span><b>Sealed on the way.</b> The six genotypes are encrypted to that key. The relay and the gateway carry them without being able to read them.</li>
+        <li><span class="pn">2</span><b>Sealed on the way.</b> The six genotypes and the watch averages are encrypted to that key. The relay and the gateway carry them without being able to read them.</li>
         <li><span class="pn">3</span><b>Signed on the way back.</b> The reading returns encrypted to your browser and signed inside the TEE, for exactly this request.</li>
       </ol>
       <h3>In words</h3>
       <ol>
-        <li><strong>Your file stays here.</strong> The page reads the file in your browser and keeps only the eight variants in the panel. Its security policy lets it talk only to its own server, plus NVIDIA's public key list.</li>
+        <li><strong>Your files stay here.</strong> The page reads both files in your browser and keeps only the eight variants in the panel and four weekly averages per watch measure. Its security policy lets it talk only to its own server, plus NVIDIA's public key list.</li>
         <li><strong>The hardware is checked first.</strong> NEAR AI Cloud runs the model inside an Intel TDX confidential VM with NVIDIA GPUs in confidential mode. The page asks for a report bound to a random number it just made, and checks the report: Intel's signature, the model key and the number inside it, the exact software the hardware measured, and NVIDIA's signed verdict.</li>
-        <li><strong>Encrypted to that key.</strong> The panel is encrypted (X25519, XChaCha20-Poly1305, NEAR AI's E2EE version 3) to the key the hardware vouched for. Our server and NEAR's gateway pass on ciphertext they cannot read.</li>
+        <li><strong>Encrypted to that key.</strong> The panel and the watch averages are encrypted (X25519, XChaCha20-Poly1305, NEAR AI's E2EE version 3) to the key the hardware vouched for. Our server and NEAR's gateway pass on ciphertext they cannot read.</li>
         <li><strong>Signed reply.</strong> The model encrypts its reply to a key this page made for this visit, and signs a hash of the exact request and reply. The page checks that signature against the attested key.</li>
         <li><strong>Nothing is kept.</strong> Our server stores no request or reply. Close the tab and the keys are gone.</li>
       </ol>
@@ -138,8 +152,9 @@
       <ul>
         <li>It trusts Intel and NVIDIA: their chips and their signing keys.</li>
         <li>The report shows which container images run, by digest. Whether that software keeps no logs is a claim you can check against NEAR AI's published source, not something the hardware proves.</li>
-        <li>The genotypes do reach the model inside the TEE: that is how it can read them.</li>
-        <li>This is a curiosity reading of a few traits. It is not medical advice and says nothing about disease.</li>
+        <li>The genotypes and averages do reach the model inside the TEE: that is how it can read them.</li>
+        <li>The watch numbers are the watch's own estimates. This page does not check them.</li>
+        <li>This is a wellness reading of a few traits and your own watch trends. It is not medical advice and says nothing about disease.</li>
       </ul>
     </section>
   </main>

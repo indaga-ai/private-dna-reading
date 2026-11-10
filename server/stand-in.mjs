@@ -19,7 +19,8 @@ export class StandIn {
   }
 
   reply(userText) {
-    const items = userText.split('\n').slice(1).map((l) => {
+    // The message is JSON lines under the headings "Traits:", "Watch:" and "Together:" (src/ai/prompt.mjs).
+    const items = userText.split('\n').map((l) => {
       try {
         return JSON.parse(l);
       } catch {
@@ -27,12 +28,22 @@ export class StandIn {
       }
     }).filter(Boolean);
     const parts = ['Stand-in reading: this server has no NEAR AI Cloud key, so a local template wrote this from the fixed results.', ''];
-    for (const t of items) {
+    for (const t of items.filter((x) => x.trait)) {
       parts.push(`${t.trait}`);
       parts.push(t.genotype === 'not measured' ? 'Not measured in this file.' : `${t.result}${t.caveat ? ` ${t.caveat}` : ''}`);
       parts.push('');
     }
-    parts.push('This reading is for curiosity only and is not medical advice.');
+    for (const w of items.filter((x) => x.measure)) {
+      parts.push(`${w.measure}`);
+      parts.push(w.average === 'not measured' ? 'Not measured: too few days of this.' : `${w.average.toLocaleString('en-US')} ${w.unit} on average. ${w.note}`);
+      parts.push('');
+    }
+    for (const t of items.filter((x) => x.link)) {
+      parts.push(`${t.link}`);
+      parts.push(t.note);
+      parts.push('');
+    }
+    parts.push('This reading is for curiosity and wellness only and is not medical advice.');
     return parts.join('\n');
   }
 

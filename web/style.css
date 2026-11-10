@@ -236,3 +236,8 @@ input[type="text"] { font: 400 14px/1.4 var(--sans); padding: 10px 12px; border-
   :root:not([data-theme="light"]) .hero-bg img, :root:not([data-theme="light"]) .band img,
   :root:not([data-theme="light"]) .step-art img, :root:not([data-theme="light"]) .trait img { mix-blend-mode: lighten; }
 }
+
+/* The watch averages beside the traits (step 3) and the fixed links between the two. */
+table.watch td.gt { white-space: nowrap; }
+table.watch td:last-child { min-width: 16rem; }
+.together { margin: 0.75rem 0 0; padding: 0.75rem 1rem; border-radius: 12px; background: var(--soft, rgba(105, 82, 161, 0.08)); }

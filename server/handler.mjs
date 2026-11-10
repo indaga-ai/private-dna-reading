@@ -70,7 +70,7 @@ export function checkReadingShape(body, { model }) {
     if (typeof msg.content !== 'string' || !HEX.test(msg.content)) throw new HttpError(400, 'bad_shape', `${role} content must be encrypted (hex)`);
   }
   if (sys.content.length !== hexLen(utf8ToBytes(SYSTEM_PROMPT).length)) throw new HttpError(400, 'bad_shape', 'the system message is not the fixed instructions');
-  if (user.content.length > hexLen(MAX_USER_BYTES) || user.content.length <= hexLen(0)) throw new HttpError(400, 'bad_shape', 'the user message is not a trait panel');
+  if (user.content.length > hexLen(MAX_USER_BYTES) || user.content.length <= hexLen(0)) throw new HttpError(400, 'bad_shape', 'the user message is not a trait panel with watch averages');
 }
 
 function clientIp(req) {
