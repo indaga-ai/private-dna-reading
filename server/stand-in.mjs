@@ -28,6 +28,12 @@ export class StandIn {
       }
     }).filter(Boolean);
     const parts = ['Stand-in reading: this server has no NEAR AI Cloud key, so a local template wrote this from the fixed results.', ''];
+    const plan = items.filter((x) => x.action);
+    if (plan.length) {
+      parts.push('Your plan');
+      parts.push(plan.map((a, i) => `${i + 1}. ${a.area}: ${a.why} ${a.action} (${a.source})`).join(' '));
+      parts.push('');
+    }
     for (const t of items.filter((x) => x.trait)) {
       parts.push(`${t.trait}`);
       parts.push(t.genotype === 'not measured' ? 'Not measured in this file.' : `${t.result}${t.caveat ? ` ${t.caveat}` : ''}`);

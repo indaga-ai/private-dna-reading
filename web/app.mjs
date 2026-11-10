@@ -11,6 +11,7 @@ import { verifyReplySignature, sha256Hex } from '../src/tee/signature.mjs';
 import { SYSTEM_PROMPT, userMessage, readingBody } from '../src/ai/prompt.mjs';
 import { parseWatch, summarizeWatch, togetherNotes, WATCH_SAMPLES } from '../src/health/watch.mjs';
 import { parseLabs, summarizeLabs, LAB_SAMPLES } from '../src/health/labs.mjs';
+import { improvementPlan } from '../src/health/plan.mjs';
 import { strayTopics } from '../src/ai/check-reply.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -233,6 +234,11 @@ function traitArt(id) {
     el('img', { src: `art/${name}.jpg`, alt: '', loading: 'lazy', width: 56, height: 56 }));
 }
 
+// The one message the model receives: every part worked out on this page (src/ai/prompt.mjs).
+function message() {
+  return userMessage(state.items, { watch: state.watch, labs: state.labs, together: state.together, plan: improvementPlan({ watch: state.watch, labs: state.labs }) });
+}
+
 function renderPanel() {
   const rows = state.items.map((i) => el('tr', {},
     el('td', {}, el('div', { class: 'trait' }, traitArt(i.id), el('div', {}, el('strong', { text: i.trait }), el('div', { class: 'muted', text: i.gene })))),
@@ -266,7 +272,14 @@ function renderPanel() {
       el('thead', {}, el('tr', {}, el('th', { text: 'Marker' }), el('th', { text: 'Value' }), el('th', { text: "The lab's range" }), el('th', { text: 'Where it falls' }))),
       el('tbody', {}, lrows))));
   }
-  const text = userMessage(state.items, state.watch, state.together, state.labs);
+  // The plan, chosen here from the fixed table (src/health/plan.mjs), shown first: it is what the reading leads with.
+  const plan = improvementPlan({ watch: state.watch, labs: state.labs });
+  if (plan.length) {
+    parts.unshift(el('ol', { class: 'plan' }, plan.map((a) => el('li', {},
+      el('strong', { text: a.area }), ' ', a.why, ' ', el('span', { class: 'plan-action', text: a.action }), ' ', el('span', { class: 'muted', text: `(${a.source})` })))));
+    parts.unshift(el('h3', { class: 'plan-head', text: 'Your plan, chosen on this page from a fixed table' }));
+  }
+  const text = message();
   parts.push(el('details', {}, el('summary', { text: `The exact text that will be encrypted (${fmtBytes(new TextEncoder().encode(text).length)})` }), el('pre', { text })));
   $('panel').replaceChildren(...parts);
 }
@@ -486,7 +499,7 @@ async function sendReading() {
   const signKey = live ? state.key : { algo: 'ed25519', publicKey: modelKey, address: modelKey, standIn: true };
   try {
     const client = newClientKeys();
-    const messages = encryptMessages(modelKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMessage(state.items, state.watch, state.together, state.labs) }]);
+    const messages = encryptMessages(modelKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: message() }]);
     const requestBytes = new TextEncoder().encode(JSON.stringify(readingBody(state.config.model, messages)));
     out.replaceChildren(
       el('details', { open: true }, el('summary', { text: `What our server and NEAR's gateway see: ${fmtBytes(requestBytes.length)} of ciphertext` }),

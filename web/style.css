@@ -247,3 +247,7 @@ table.labs td.gt { white-space: nowrap; }
 .pos.above, .pos.below { background: rgba(138, 75, 0, 0.12); color: #8a4b00; }
 .pos.not-compared { background: rgba(107, 101, 118, 0.12); }
 @media (prefers-color-scheme: dark) { .pos.within { color: #8fd6b8; } .pos.above, .pos.below { color: #f0c27a; } }
+/* The improvement plan (step 4), chosen on the page; the reading leads with it. */
+.plan-head { margin: 0 0 0.5rem; font-size: 1rem; }
+ol.plan { margin: 0 0 1.25rem; padding-left: 1.4rem; display: grid; gap: 0.6rem; }
+ol.plan .plan-action { font-weight: 600; }

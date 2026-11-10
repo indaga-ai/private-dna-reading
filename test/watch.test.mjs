@@ -67,7 +67,7 @@ test('the message: unchanged without watch data; with it, every sample stays ins
     const dnaOnly = userMessage(traits);
     assert.ok(dnaOnly.startsWith('Traits:\n') && !dnaOnly.includes('Watch:'), s.name);
     const watch = summarizeWatch(parseWatch(sample(WATCH_SAMPLES[s.name])));
-    const full = userMessage(traits, watch, togetherNotes(traits, watch));
+    const full = userMessage(traits, { watch, together: togetherNotes(traits, watch) });
     assert.ok(full.startsWith(`${dnaOnly}\nWatch:\n`), `${s.name}: the traits part is the same text`);
     assert.equal(full.split('\n').filter((l) => l.startsWith('{"measure"')).length, 4, s.name);
     assert.ok(new TextEncoder().encode(full).length <= MAX_USER_BYTES, `${s.name}: ${full.length} bytes`);

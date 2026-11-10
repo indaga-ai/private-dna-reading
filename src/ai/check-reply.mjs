@@ -4,7 +4,8 @@
 const STRAY = [
   ['cancer', /\bcancers?\b|\bcarcinoma/i],
   ['disease', /\bdiseases?\b/i],
-  ['diagnosis', /\bdiagnos(is|es|ed|e)\b/i],
+  // "not a diagnosis" and "no diagnosis" are the reading's own disclaimers, not a diagnosis.
+  ['diagnosis', /(?<!\bnot an? |\bno )\bdiagnos(is|es|ed|e)\b/i],
   ['medicine or drugs', /\bmedications?\b|\bmedicines?\b|\bdrugs?\b|\bprescri/i],
   ['health risk', /\b(health|disease|cancer)[- ]risks?\b|\brisk of (developing|getting)\b/i],
   ['a disorder or syndrome', /\bdisorders?\b|\bsyndromes?\b/i],

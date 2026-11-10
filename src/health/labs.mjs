@@ -7,8 +7,8 @@ export const MAX_MARKERS = 12;
 
 export const NOTES = {
   within: 'Within the range the lab printed.',
-  above: 'Above the range the lab printed: something to ask a doctor about, not a diagnosis.',
-  below: 'Below the range the lab printed: something to ask a doctor about, not a diagnosis.',
+  above: 'Above the range the lab printed: a question for a doctor.',
+  below: 'Below the range the lab printed: a question for a doctor.',
   none: 'No range in the same unit was printed with it, so it is not compared.',
 };
 
@@ -36,7 +36,8 @@ export function parseLabs(text) {
     markers.set(marker.toLowerCase(), {
       marker, value, unit: String(r.unit ?? '').trim().slice(0, 20),
       low: num(r.low), high: num(r.high),
-      rangeUnit: String(r.range_unit ?? r.unit ?? '').trim().slice(0, 20),
+      // The range's unit when the lab printed one apart; an empty column means the value's own unit.
+      rangeUnit: String(String(r.range_unit ?? '').trim() || r.unit || '').trim().slice(0, 20),
       date: /^\d{4}-\d{2}-\d{2}$/.test(String(r.date ?? '')) ? r.date : null,
     });
   }
