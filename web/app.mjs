@@ -10,6 +10,7 @@ import { newClientKeys, encryptMessages, decryptWith, e2eeHeaders } from '../src
 import { verifyReplySignature, sha256Hex } from '../src/tee/signature.mjs';
 import { SYSTEM_PROMPT, userMessage, readingBody } from '../src/ai/prompt.mjs';
 import { parseWatch, summarizeWatch, togetherNotes, WATCH_SAMPLES } from '../src/health/watch.mjs';
+import { parseLabs, summarizeLabs, LAB_SAMPLES } from '../src/health/labs.mjs';
 import { strayTopics } from '../src/ai/check-reply.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -25,7 +26,7 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 
-const state = { config: null, items: null, source: null, watch: null, together: [], watchSource: null, attestation: null, key: null, pass: null, busy: false };
+const state = { config: null, items: null, source: null, watch: null, together: [], watchSource: null, labs: null, attestation: null, key: null, pass: null, busy: false };
 
 function unlock(stepId, done = false) {
   const s = $(stepId);
@@ -65,6 +66,7 @@ async function readGenome(chunks, label, sample = null) {
   setStatus(status, `Read ${parsed.rows.toLocaleString()} rows${parsed.build ? ` (${parsed.build})` : ''} in ${ms} ms on this device. ${measured} of ${state.items.length} traits could be read.`);
   unlock('step-genome', true);
   await offerWatch(sample);
+  await offerLabs(sample);
   renderPanel();
   unlock('step-panel', true);
   unlock('step-tee');
@@ -116,15 +118,15 @@ function leaveWatchOut() {
   state.watch = null;
   state.together = [];
   state.watchSource = null;
-  setStatus($('watch-status'), 'No watch data: the reading will cover your DNA only.');
+  setStatus($('watch-status'), 'No watch data: the reading leaves it out.');
   unlock('step-watch', true);
 }
 
-function renderWatchChoice(buttons) {
-  $('watch-choice').replaceChildren(...buttons.map(([label, small, pressed, onclick]) => {
+function renderChoice(boxId, buttons) {
+  $(boxId).replaceChildren(...buttons.map(([label, small, pressed, onclick]) => {
     const b = el('button', { class: 'sample', type: 'button', 'aria-pressed': String(pressed) }, el('strong', { text: label }), el('small', { text: small }));
     b.addEventListener('click', async () => {
-      for (const x of $('watch-choice').querySelectorAll('.sample')) x.setAttribute('aria-pressed', String(x === b));
+      for (const x of $(boxId).querySelectorAll('.sample')) x.setAttribute('aria-pressed', String(x === b));
       try {
         await onclick();
       } catch (e) {
@@ -146,14 +148,14 @@ async function offerWatch(sample) {
       if (!r.ok) throw new Error(`could not load the watch sample (HTTP ${r.status})`);
       useWatch(await r.text(), `${sample.name}'s watch (made up)`);
     };
-    renderWatchChoice([[`${sample.name}'s watch`, 'Four weeks · made up', true, load], ['Leave it out', 'DNA only', false, async () => leaveWatchOut()]]);
+    renderChoice('watch-choice', [[`${sample.name}'s watch`, 'Four weeks · made up', true, load], ['Leave it out', 'No watch data', false, async () => leaveWatchOut()]]);
     try {
       await load();
     } catch (e) {
       setStatus($('watch-status'), e.message, true);
     }
   } else {
-    renderWatchChoice([['Leave it out', 'DNA only', !state.watch, async () => leaveWatchOut()]]);
+    renderChoice('watch-choice', [['Leave it out', 'No watch data', !state.watch, async () => leaveWatchOut()]]);
     if (!state.watch) leaveWatchOut();
   }
 }
@@ -168,7 +170,55 @@ async function loadWatchFile(file) {
   resetReading();
 }
 
-// ---- Step 3: what leaves the page -----------------------------------------------------------------------------
+// ---- Step 3: the blood test --------------------------------------------------------------------------------------
+
+// A blood test as its lab printed it (src/health/labs.mjs): each value is placed against the lab's own range, here.
+function useLabs(text, label) {
+  state.labs = summarizeLabs(parseLabs(text));
+  if (!state.labs.length) throw new Error('No markers with a value were found in this blood test.');
+  const outside = state.labs.filter((l) => l.position === 'above' || l.position === 'below').length;
+  setStatus($('labs-status'), `Read ${state.labs.length} markers of ${label} on this device: ${outside} outside the range the lab printed.`);
+  unlock('step-labs', true);
+}
+
+function leaveLabsOut() {
+  state.labs = null;
+  setStatus($('labs-status'), 'No blood test: the reading leaves it out.');
+  unlock('step-labs', true);
+}
+
+async function offerLabs(sample) {
+  unlock('step-labs');
+  const file = sample && LAB_SAMPLES[sample.name];
+  if (file) {
+    const load = async () => {
+      const r = await fetch(`samples/${file}`);
+      if (!r.ok) throw new Error(`could not load the blood test sample (HTTP ${r.status})`);
+      useLabs(await r.text(), `${sample.name}'s blood test (made up)`);
+    };
+    renderChoice('labs-choice', [[`${sample.name}'s blood test`, 'Six markers · made up', true, load], ['Leave it out', 'No blood test', false, async () => leaveLabsOut()]]);
+    try {
+      await load();
+    } catch (e) {
+      setStatus($('labs-status'), e.message, true);
+    }
+  } else {
+    renderChoice('labs-choice', [['Leave it out', 'No blood test', !state.labs, async () => leaveLabsOut()]]);
+    if (!state.labs) leaveLabsOut();
+  }
+}
+
+async function loadLabsFile(file) {
+  try {
+    useLabs(await file.text(), `${file.name} (${fmtBytes(file.size)})`);
+  } catch (e) {
+    setStatus($('labs-status'), e.message, true);
+  }
+  renderPanel();
+  resetReading();
+}
+
+// ---- Step 4: what leaves the page -----------------------------------------------------------------------------
 
 // The illustrated report's art (and new art in the same style) beside each trait; a missing image falls back to a dot.
 const TRAIT_ART = { lactase: 'lactase', flush: 'flush', earwax: 'ear', eyes: 'eye', muscle: 'muscle', bitter: 'taste' };
@@ -206,12 +256,22 @@ function renderPanel() {
       el('tbody', {}, wrows))));
     for (const t of state.together) parts.push(el('p', { class: 'together' }, el('strong', { text: `${t.link}: ` }), t.note));
   }
-  const text = userMessage(state.items, state.watch, state.together);
+  if (state.labs) {
+    const lrows = state.labs.map((l) => el('tr', {},
+      el('td', {}, el('strong', { text: l.marker }), l.date ? el('div', { class: 'muted', text: l.date }) : null),
+      el('td', { class: 'gt', text: `${l.value} ${l.unit}` }),
+      el('td', { class: 'gt', text: l.range }),
+      el('td', {}, el('span', { class: `pos ${l.position.replace(' ', '-')}`, text: l.position }), ' ', l.note)));
+    parts.push(el('div', { class: 'table-scroll' }, el('table', { class: 'labs' },
+      el('thead', {}, el('tr', {}, el('th', { text: 'Marker' }), el('th', { text: 'Value' }), el('th', { text: "The lab's range" }), el('th', { text: 'Where it falls' }))),
+      el('tbody', {}, lrows))));
+  }
+  const text = userMessage(state.items, state.watch, state.together, state.labs);
   parts.push(el('details', {}, el('summary', { text: `The exact text that will be encrypted (${fmtBytes(new TextEncoder().encode(text).length)})` }), el('pre', { text })));
   $('panel').replaceChildren(...parts);
 }
 
-// ---- Step 4: the hardware check -------------------------------------------------------------------------------
+// ---- Step 5: the hardware check -------------------------------------------------------------------------------
 
 // The hardware checks, grouped so they read as five questions.
 const GROUPS = [
@@ -304,7 +364,7 @@ async function checkHardware() {
   }
 }
 
-// ---- Step 5: payment ------------------------------------------------------------------------------------------
+// ---- Step 6: payment ------------------------------------------------------------------------------------------
 
 async function renderPay() {
   const box = $('pay');
@@ -380,7 +440,7 @@ async function pollPayment(address, status) {
   }
 }
 
-// ---- Step 6: the reading --------------------------------------------------------------------------------------
+// ---- Step 7: the reading --------------------------------------------------------------------------------------
 
 function resetReading() {
   $('reading').replaceChildren();
@@ -426,7 +486,7 @@ async function sendReading() {
   const signKey = live ? state.key : { algo: 'ed25519', publicKey: modelKey, address: modelKey, standIn: true };
   try {
     const client = newClientKeys();
-    const messages = encryptMessages(modelKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMessage(state.items, state.watch, state.together) }]);
+    const messages = encryptMessages(modelKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMessage(state.items, state.watch, state.together, state.labs) }]);
     const requestBytes = new TextEncoder().encode(JSON.stringify(readingBody(state.config.model, messages)));
     out.replaceChildren(
       el('details', { open: true }, el('summary', { text: `What our server and NEAR's gateway see: ${fmtBytes(requestBytes.length)} of ciphertext` }),
@@ -452,7 +512,7 @@ async function sendReading() {
     out.append(renderReadingText(text));
     if (choice?.finish_reason === 'length') out.append(el('p', { class: 'status', text: 'The reading reached its length limit and may end mid-sentence.' }));
     const stray = strayTopics(text);
-    if (stray.length) out.append(el('div', { class: 'verdict bad', text: `The AI's text strayed beyond this reading (it mentions ${stray.join(', ')}). This app reads traits and watch trends only: trust the fixed results in step 3, not that part of the text.` }));
+    if (stray.length) out.append(el('div', { class: 'verdict bad', text: `The AI's text strayed beyond this reading (it mentions ${stray.join(', ')}). This app reads traits, watch trends and where blood test values fall, nothing more: trust the fixed results in step 4, not that part of the text.` }));
     const sig = await fetchSignature(reply.id, live ? null : `${sha256Hex(requestBytes)}:${sha256Hex(responseBytes)}`);
     const v = verifyReplySignature({ sig, model: state.config.model, requestBytes, responseBytes, key: signKey });
     decrypted.textContent = 'Decrypted on this device with a key made for this visit.';
@@ -485,7 +545,7 @@ async function start() {
   }
   if (c.payments !== 'off') {
     $('step-pay').hidden = false;
-    $('reading-num').textContent = '6';
+    $('reading-num').textContent = '7';
   }
   $('samples').replaceChildren(...SAMPLES.map((s) => {
     const b = el('button', { class: 'sample', type: 'button', 'aria-pressed': 'false' }, el('strong', { text: s.name }), el('small', { text: s.blurb }));
@@ -498,6 +558,8 @@ async function start() {
     $('file-input').addEventListener('change', (e) => e.target.files[0] && loadFile(e.target.files[0]));
     $('watch-file').hidden = false;
     $('watch-input').addEventListener('change', (e) => e.target.files[0] && loadWatchFile(e.target.files[0]));
+    $('labs-file').hidden = false;
+    $('labs-input').addEventListener('change', (e) => e.target.files[0] && loadLabsFile(e.target.files[0]));
   }
   $('check-tee').addEventListener('click', checkHardware);
   $('send').addEventListener('click', sendReading);

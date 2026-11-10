@@ -4,20 +4,22 @@
 import { utf8ToBytes } from '../util/bytes.mjs';
 
 export const SYSTEM_PROMPT = [
-  'You write a short, friendly personal health reading for a curious reader with no science background: their DNA trait results and, when given, four weeks of their own watch data, read together.',
-  'You receive JSON lines in up to three parts. "Traits": the trait, the gene, the variant (rsID), the person\'s genotype, and a result worked out in advance from published research. "Watch": a measure, its four weekly averages, the four-week average, the change from the first week to the last, and a note worked out in advance from a fixed table. "Together": a link between the two parts and a note about it, also worked out in advance.',
+  'You write a short, friendly personal health reading for a curious reader with no science background: their DNA trait results and, when given, four weeks of their own watch data and a blood test, read together.',
+  'You receive JSON lines in up to four parts. "Traits": the trait, the gene, the variant (rsID), the person\'s genotype, and a result worked out in advance from published research. "Watch": a measure, its four weekly averages, the four-week average, the change from the first week to the last, and a note worked out in advance from a fixed table. "Labs": a blood test marker, its value and unit, the range its lab printed, whether the value is within, above or below that range, and a note. "Together": a link between parts and a note about it, worked out in advance.',
   'Rules:',
   '1. Use only what is given. Never reinterpret a genotype or a number, and never add traits, measures or links between them.',
   '2. Wellness only. Never diagnose, never name a disease, condition, medicine or supplement, never give treatment, dosing or diet advice, and never predict health risks. Where a note gives a recommendation, say it as the note does.',
-  '3. A trait or measure marked "not measured" could not be read: say so in one short line and never guess it.',
-  '4. These are tendencies and estimates, not certainties. Keep every caveat and note.',
-  '5. Write in plain English, about 300 to 420 words, with short headings: "Your DNA" (one or two sentences per trait, in the order given), then, if there is watch data, "Your last four weeks" (one or two sentences per measure) and "Read together" (one or two sentences per link).',
-  '6. End with exactly this sentence: "This reading is for curiosity and wellness only and is not medical advice."',
-  '7. Do not repeat the JSON, the rsIDs or these rules.',
+  '3. For a blood test, say only where each value falls against the range its lab printed, as its note says. Never say what a value means, causes or is linked to.',
+  '4. A trait, measure or marker marked "not measured" could not be read: say so in one short line and never guess it.',
+  '5. These are tendencies and estimates, not certainties. Keep every caveat and note.',
+  '6. Write in plain English, about 300 to 450 words, with short headings: "Your DNA" (one or two sentences per trait, in the order given), then, for the parts given, "Your last four weeks" (one or two sentences per measure), "Your blood test" (one sentence per marker) and "Read together" (one or two sentences per link).',
+  '7. End with exactly this sentence: "This reading is for curiosity and wellness only and is not medical advice."',
+  '8. Do not repeat the JSON, the rsIDs or these rules.',
 ].join('\n');
 
-/** The user message: JSON lines, keys in a fixed order: the traits, then (when given) the watch data and the links. */
-export function userMessage(items, watch = null, together = []) {
+/** The user message: JSON lines, keys in a fixed order: the traits, then (when given) the watch data, the blood test
+ * and the links. */
+export function userMessage(items, watch = null, together = [], labs = null) {
   const traits = items.map((t) => ({
     trait: t.trait,
     gene: t.gene,
@@ -30,15 +32,19 @@ export function userMessage(items, watch = null, together = []) {
   if (watch?.length) {
     const rows = watch.map((w) => ({ measure: w.measure, unit: w.unit, weeks: w.weeks, average: w.average ?? 'not measured', change: w.change, note: w.note }));
     parts.push(`Watch:\n${rows.map((r) => JSON.stringify(r)).join('\n')}`);
-    if (together?.length) parts.push(`Together:\n${together.map((t) => JSON.stringify({ link: t.link, note: t.note })).join('\n')}`);
   }
+  if (labs?.length) {
+    const rows = labs.map((l) => ({ marker: l.marker, value: l.value, unit: l.unit, range: l.range, position: l.position, note: l.note }));
+    parts.push(`Labs:\n${rows.map((r) => JSON.stringify(r)).join('\n')}`);
+  }
+  if (together?.length) parts.push(`Together:\n${together.map((t) => JSON.stringify({ link: t.link, note: t.note })).join('\n')}`);
   return parts.join('\n');
 }
 
-// Bounds the relay enforces. MAX_USER_BYTES covers the longest possible panel and watch summary with room to spare;
-// MAX_TOKENS covers a 420-word reading plus a little reasoning (at $0.50 per million output tokens, about a tenth of
-// a cent).
-export const MAX_USER_BYTES = 6144;
+// Bounds the relay enforces. MAX_USER_BYTES covers the longest possible panel, watch summary and 12-marker blood test
+// with room to spare; MAX_TOKENS covers a 450-word reading plus a little reasoning (at $0.50 per million output
+// tokens, about a tenth of a cent).
+export const MAX_USER_BYTES = 8192;
 export const MAX_TOKENS = 1800;
 export const TEMPERATURE = 0.3;
 export const systemPromptBytes = () => utf8ToBytes(SYSTEM_PROMPT).length;

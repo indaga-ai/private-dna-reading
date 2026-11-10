@@ -38,6 +38,11 @@ export class StandIn {
       parts.push(w.average === 'not measured' ? 'Not measured: too few days of this.' : `${w.average.toLocaleString('en-US')} ${w.unit} on average. ${w.note}`);
       parts.push('');
     }
+    for (const l of items.filter((x) => x.marker)) {
+      parts.push(`${l.marker}`);
+      parts.push(`${l.value} ${l.unit} (the lab's range: ${l.range}). ${l.note}`);
+      parts.push('');
+    }
     for (const t of items.filter((x) => x.link)) {
       parts.push(`${t.link}`);
       parts.push(t.note);

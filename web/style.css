@@ -241,3 +241,9 @@ input[type="text"] { font: 400 14px/1.4 var(--sans); padding: 10px 12px; border-
 table.watch td.gt { white-space: nowrap; }
 table.watch td:last-child { min-width: 16rem; }
 .together { margin: 0.75rem 0 0; padding: 0.75rem 1rem; border-radius: 12px; background: var(--soft, rgba(105, 82, 161, 0.08)); }
+table.labs td.gt { white-space: nowrap; }
+.pos { display: inline-block; padding: 0 0.5em; border-radius: 999px; font-size: 0.85em; font-weight: 600; }
+.pos.within { background: rgba(31, 107, 82, 0.12); color: #1f6b52; }
+.pos.above, .pos.below { background: rgba(138, 75, 0, 0.12); color: #8a4b00; }
+.pos.not-compared { background: rgba(107, 101, 118, 0.12); }
+@media (prefers-color-scheme: dark) { .pos.within { color: #8fd6b8; } .pos.above, .pos.below { color: #f0c27a; } }

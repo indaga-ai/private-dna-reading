@@ -1,0 +1,50 @@
+[
+ {
+  "marker": "Vitamin D (25-OH)",
+  "value": 38,
+  "unit": "nmol/L",
+  "low": 50,
+  "high": 125,
+  "date": "2026-11-02"
+ },
+ {
+  "marker": "HbA1c",
+  "value": 34,
+  "unit": "mmol/mol",
+  "low": 20,
+  "high": 42,
+  "date": "2026-11-02"
+ },
+ {
+  "marker": "LDL cholesterol",
+  "value": 2.6,
+  "unit": "mmol/L",
+  "low": null,
+  "high": 3.0,
+  "date": "2026-11-02"
+ },
+ {
+  "marker": "HDL cholesterol",
+  "value": 1.6,
+  "unit": "mmol/L",
+  "low": 1.0,
+  "high": null,
+  "date": "2026-11-02"
+ },
+ {
+  "marker": "Triglycerides",
+  "value": 0.9,
+  "unit": "mmol/L",
+  "low": null,
+  "high": 2.0,
+  "date": "2026-11-02"
+ },
+ {
+  "marker": "Ferritin",
+  "value": 28,
+  "unit": "µg/L",
+  "low": 15,
+  "high": 300,
+  "date": "2026-11-02"
+ }
+]
