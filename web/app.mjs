@@ -8,7 +8,7 @@ import { verifyModelAttestation, newNonce } from '../src/tee/attestation.mjs';
 import { quoteVerifier, gpuVerifier } from '../src/tee/hardware.mjs';
 import { newClientKeys, encryptMessages, decryptWith, e2eeHeaders } from '../src/tee/e2ee.mjs';
 import { verifyReplySignature, sha256Hex } from '../src/tee/signature.mjs';
-import { SYSTEM_PROMPT, userMessage, readingBody } from '../src/ai/prompt.mjs';
+import { SYSTEM_PROMPT, userMessage, readingBody, MAX_USER_BYTES } from '../src/ai/prompt.mjs';
 import { parseWatch, summarizeWatch, togetherNotes, WATCH_SAMPLES } from '../src/health/watch.mjs';
 import { parseLabs, summarizeLabs, LAB_SAMPLES } from '../src/health/labs.mjs';
 import { improvementPlan } from '../src/health/plan.mjs';
@@ -247,15 +247,15 @@ function renderPanel() {
     el('td', {}, i.result, i.caveat ? el('div', { class: 'muted', text: i.caveat }) : null),
   ));
   const table = el('div', { class: 'table-scroll' }, el('table', {},
-    el('thead', {}, el('tr', {}, el('th', { text: 'Trait' }), el('th', { text: 'Variant' }), el('th', { text: 'Genotype' }), el('th', { text: 'Result' }))),
+    el('thead', {}, el('tr', {}, el('th', { text: 'Trait' }), el('th', { class: 'var', text: 'Variant' }), el('th', { text: 'Genotype' }), el('th', { text: 'Result' }))),
     el('tbody', {}, rows)));
   const parts = [table];
   if (state.watch) {
     const fmt = (v) => (v === null ? '—' : v.toLocaleString('en-US'));
     const wrows = state.watch.map((w) => el('tr', {},
       el('td', {}, el('strong', { text: w.measure }), el('div', { class: 'muted', text: w.unit })),
-      ...w.weeks.map((v) => el('td', { class: 'gt', text: fmt(v) })),
-      el('td', { class: 'gt', text: fmt(w.average) }),
+      ...w.weeks.map((v, i) => el('td', { class: 'gt wk', 'data-label': `Week ${i + 1}`, text: fmt(v) })),
+      el('td', { class: 'gt avg', 'data-label': 'Average', text: fmt(w.average) }),
       el('td', { text: w.note })));
     parts.push(el('div', { class: 'table-scroll' }, el('table', { class: 'watch' },
       el('thead', {}, el('tr', {}, el('th', { text: 'Measure' }), ...['Week 1', 'Week 2', 'Week 3', 'Week 4'].map((t) => el('th', { text: t })), el('th', { text: 'Average' }), el('th', { text: 'Note' }))),
@@ -266,7 +266,7 @@ function renderPanel() {
     const lrows = state.labs.map((l) => el('tr', {},
       el('td', {}, el('strong', { text: l.marker }), l.date ? el('div', { class: 'muted', text: l.date }) : null),
       el('td', { class: 'gt', text: `${l.value} ${l.unit}` }),
-      el('td', { class: 'gt', text: l.range }),
+      el('td', { class: 'gt rng', text: l.range }),
       el('td', {}, el('span', { class: `pos ${l.position.replace(' ', '-')}`, text: l.position }), ' ', l.note)));
     parts.push(el('div', { class: 'table-scroll' }, el('table', { class: 'labs' },
       el('thead', {}, el('tr', {}, el('th', { text: 'Marker' }), el('th', { text: 'Value' }), el('th', { text: "The lab's range" }), el('th', { text: 'Where it falls' }))),
@@ -280,7 +280,9 @@ function renderPanel() {
     parts.unshift(el('h3', { class: 'plan-head', text: 'Your plan, chosen on this page from a fixed table' }));
   }
   const text = message();
-  parts.push(el('details', {}, el('summary', { text: `The exact text that will be encrypted (${fmtBytes(new TextEncoder().encode(text).length)})` }), el('pre', { text })));
+  const size = new TextEncoder().encode(text).length;
+  parts.push(el('details', {}, el('summary', { text: `The exact text that will be encrypted (${fmtBytes(size)})` }), el('pre', { text })));
+  if (size > MAX_USER_BYTES) parts.push(el('p', { class: 'status error', text: `This is more than the ${fmtBytes(MAX_USER_BYTES)} the relay accepts, so it cannot be sent: use a blood test with fewer markers or shorter names.` }));
   $('panel').replaceChildren(...parts);
 }
 
@@ -498,8 +500,11 @@ async function sendReading() {
   const modelKey = live ? state.key.publicKey : state.config.standInKey;
   const signKey = live ? state.key : { algo: 'ed25519', publicKey: modelKey, address: modelKey, standIn: true };
   try {
+    const summary = message();
+    const size = new TextEncoder().encode(summary).length;
+    if (size > MAX_USER_BYTES) throw new Error(`the summary is ${fmtBytes(size)}, more than the ${fmtBytes(MAX_USER_BYTES)} the relay accepts`);
     const client = newClientKeys();
-    const messages = encryptMessages(modelKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: message() }]);
+    const messages = encryptMessages(modelKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: summary }]);
     const requestBytes = new TextEncoder().encode(JSON.stringify(readingBody(state.config.model, messages)));
     out.replaceChildren(
       el('details', { open: true }, el('summary', { text: `What our server and NEAR's gateway see: ${fmtBytes(requestBytes.length)} of ciphertext` }),

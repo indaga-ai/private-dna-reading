@@ -33,7 +33,7 @@ test('the plan for each sample person: fixed actions, in priority order, at most
   const areas = (name) => improvementPlan(person(name)).map((a) => a.area);
   assert.deepEqual(areas('Ada'), ['Blood test', 'Sleep'], "Ada: vitamin D below her lab's range, then 6.4 hours of sleep");
   assert.deepEqual(areas('Bo'), ['Keep going']);
-  assert.deepEqual(areas('Cyd'), ['Blood test', 'Sleep', 'Activity'], 'Cyd: four rules apply (her resting heart rate rose by 4); only the first three are kept');
+  assert.deepEqual(areas('Cyd'), ['Blood test', 'Sleep', 'Activity'], 'Cyd: all five rules apply (her resting heart rate rose by 4 and her HRV fell by 8 ms); only the first three are kept');
   const [blood] = improvementPlan(person('Cyd'));
   assert.equal(blood.why, 'LDL cholesterol and Triglycerides are above the range your lab printed.');
   assert.match(blood.action, /^Ask a doctor about these results/);
@@ -50,7 +50,14 @@ test('the stray check reads the reading\'s own disclaimers as such', () => {
   assert.deepEqual(strayTopics('This points to a diagnosis of anaemia.'), ['diagnosis']);
 });
 
-test('the whole message, every part, stays inside the relay limit for every sample person', async () => {
+test('the whole message stays inside the relay limit, for every sample person and the largest blood test the parser takes', async () => {
+  // 12 markers with 60-character names and 20-character units in a 3-byte script, quotes to escape, the longest numbers,
+  // and six above and six below their range, so every name is in the plan's first action too.
+  const max = Number.MAX_VALUE;
+  const largest = summarizeLabs(parseLabs(JSON.stringify(Array.from({ length: MAX_MARKERS }, (_, i) => ({
+    marker: `${i}"`.padEnd(60, '漢'), unit: '"'.padEnd(20, '漢'), value: i % 2 ? max : -max, low: i % 2 ? -max : max, high: i % 2 ? -max : max, date: '2026-11-02',
+  })))));
+  assert.deepEqual(largest.map((l) => l.position), Array.from({ length: MAX_MARKERS }, (_, i) => (i % 2 ? 'above' : 'below')));
   for (const s of SAMPLES) {
     const text = sample(s.file);
     const traits = callPanel((await extractPanel((async function* () { yield text; })(), PANEL_RSIDS)).found);
@@ -58,5 +65,7 @@ test('the whole message, every part, stays inside the relay limit for every samp
     const msg = userMessage(traits, { watch, labs, together: togetherNotes(traits, watch), plan: improvementPlan({ watch, labs }) });
     assert.deepEqual(msg.split('\n').filter((l) => /^[A-Z][a-z]+:$/.test(l)), ['Traits:', 'Watch:', 'Labs:', 'Together:', 'Plan:'], s.name);
     assert.ok(new TextEncoder().encode(msg).length <= MAX_USER_BYTES, `${s.name}: ${msg.length} bytes`);
+    const most = userMessage(traits, { watch, labs: largest, together: togetherNotes(traits, watch), plan: improvementPlan({ watch, labs: largest }) });
+    assert.ok(new TextEncoder().encode(most).length <= MAX_USER_BYTES, `${s.name} with the largest blood test: ${new TextEncoder().encode(most).length} bytes`);
   }
 });

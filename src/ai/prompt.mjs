@@ -42,10 +42,11 @@ export function userMessage(items, { watch = null, labs = null, together = [], p
   return parts.join('\n');
 }
 
-// Bounds the relay enforces. MAX_USER_BYTES covers the longest possible panel, watch summary and 12-marker blood test
-// with room to spare; MAX_TOKENS covers a 500-word reading plus a little reasoning (at $0.50 per million output
+// Bounds the relay enforces. MAX_USER_BYTES holds the largest 12-marker blood test the parser accepts, with names in
+// any script (test/health.test.mjs), about three times a sample person's summary; the page also checks the size before
+// it sends. MAX_TOKENS covers a 500-word reading plus a little reasoning (at $0.50 per million output
 // tokens, about a tenth of a cent).
-export const MAX_USER_BYTES = 8192;
+export const MAX_USER_BYTES = 16384;
 export const MAX_TOKENS = 1800;
 export const TEMPERATURE = 0.3;
 export const systemPromptBytes = () => utf8ToBytes(SYSTEM_PROMPT).length;

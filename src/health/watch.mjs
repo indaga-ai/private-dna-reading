@@ -1,5 +1,5 @@
 // Four weeks of a watch's daily numbers, reduced on this page to what leaves it: four weekly averages per measure,
-// the change over the four weeks, and a note from a small fixed table (docs/WATCH.md, with its sources). Like the
+// the change over the four weeks, and a note from a small fixed table (docs/HEALTH.md, with its sources). Like the
 // DNA results, every number and note is worked out here; the AI only writes them up. Wellness only: no threshold
 // that would amount to a diagnosis, and none at all for HRV and resting heart rate, which differ by person and device.
 
@@ -60,7 +60,7 @@ function trend(m, weekly) {
   return { change, text: `Over the four weeks it ${change > 0 ? 'rose' : 'fell'} by ${words(Math.abs(change))} ${m.changeUnit}.` };
 }
 
-// The fixed notes. Each says only what its source says (docs/WATCH.md); none diagnoses or predicts.
+// The fixed notes. Each says only what its source says (docs/HEALTH.md); none diagnoses or predicts.
 const NOTES = {
   sleep: (avg) => (avg < 7 ? 'Below the 7 or more hours a night recommended for adults (AASM and SRS, 2015).'
     : 'Within the 7 or more hours a night recommended for adults (AASM and SRS, 2015).'),

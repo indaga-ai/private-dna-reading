@@ -53,6 +53,6 @@ export function improvementPlan({ watch = null, labs = null } = {}) {
   if (!watch?.length && !labs?.length) return [];
   const actions = RULES.map((rule) => rule({ watch, labs })).filter(Boolean).slice(0, 3);
   if (actions.length) return actions;
-  return [{ area: 'Keep going', why: 'Your sleep, activity and blood values are within the ranges used here, and your trends are steady.',
+  return [{ area: 'Keep going', why: 'Your sleep, activity and blood values are within the ranges used here, and no change over the four weeks needs a look.',
     action: 'Keep your routine, and read your data again in a few months.', source: 'The ranges and trends above' }];
 }
