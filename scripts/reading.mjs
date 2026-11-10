@@ -1,8 +1,9 @@
 // The whole reading from the command line, without a browser, straight to NEAR AI Cloud (no relay):
-//   NEARAI_API_KEY=... npm run reading                  the sample "Ada"
-//   NEARAI_API_KEY=... npm run reading -- my-file.txt   your own raw DNA file (.txt, .csv or .zip)
-// It reads the file here, checks the hardware (Intel and NVIDIA included), encrypts the panel to the attested key,
-// decrypts the reply and checks its signature, printing each step.
+//   NEARAI_API_KEY=... npm run reading                              the sample "Ada": DNA, watch and blood test
+//   NEARAI_API_KEY=... npm run reading -- --sample Cyd               another sample person
+//   NEARAI_API_KEY=... npm run reading -- my-file.txt [--watch w.csv] [--labs l.csv]   your own files
+// It reads the files here, checks the hardware (Intel and NVIDIA included), encrypts what leaves to the attested
+// key, decrypts the reply and checks its signature, printing each step.
 import { readFileSync, openAsBlob } from 'node:fs';
 import { extractPanel, fromString } from '../src/genome/parse.mjs';
 import { isZip, openRawDataInZip, chunksOf } from '../src/genome/unzip.mjs';
@@ -12,6 +13,11 @@ import { quoteVerifier, gpuVerifier } from '../src/tee/hardware.mjs';
 import { newClientKeys, encryptMessages, decryptWith, e2eeHeaders } from '../src/tee/e2ee.mjs';
 import { verifyReplySignature } from '../src/tee/signature.mjs';
 import { SYSTEM_PROMPT, userMessage, readingBody, DEFAULT_MODEL } from '../src/ai/prompt.mjs';
+import { SAMPLES } from '../src/genome/panel.mjs';
+import { parseWatch, summarizeWatch, togetherNotes, WATCH_SAMPLES } from '../src/health/watch.mjs';
+import { parseLabs, summarizeLabs, LAB_SAMPLES } from '../src/health/labs.mjs';
+import { improvementPlan } from '../src/health/plan.mjs';
+import { strayTopics } from '../src/ai/check-reply.mjs';
 
 const key = process.env.NEARAI_API_KEY;
 if (!key) {
@@ -20,15 +26,25 @@ if (!key) {
 }
 const base = process.env.NEARAI_BASE || 'https://cloud-api.near.ai/v1';
 const model = process.env.MODEL || DEFAULT_MODEL;
-const path = process.argv[2] || new URL('../web/samples/ada-23andme.txt', import.meta.url).pathname;
+const args = process.argv.slice(2);
+const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args.splice(i, 2)[1] : null; };
+const samplePath = (file) => new URL(`../web/samples/${file}`, import.meta.url).pathname;
+const sampleName = opt('--sample') || (args.length ? null : 'Ada');
+const person = SAMPLES.find((x) => x.name === sampleName);
+const watchPath = opt('--watch') || (person && samplePath(WATCH_SAMPLES[person.name]));
+const labsPath = opt('--labs') || (person && samplePath(LAB_SAMPLES[person.name]));
+const path = args[0] || samplePath(person.file);
 
 // 1. Read the file here.
 const blob = await openAsBlob(path);
 const chunks = (await isZip(blob)) ? chunksOf((await openRawDataInZip(blob)).text) : fromString(readFileSync(path, 'utf8'));
 const parsed = await extractPanel(chunks, PANEL_RSIDS);
 const items = callPanel(parsed.found);
-console.log(`1. Read ${parsed.rows.toLocaleString()} rows from ${path} on this computer. What would leave it, encrypted:\n`);
-console.log(userMessage(items).split('\n').map((l) => `   ${l}`).join('\n'));
+const watch = watchPath ? summarizeWatch(parseWatch(readFileSync(watchPath, 'utf8'))) : null;
+const labs = labsPath ? summarizeLabs(parseLabs(readFileSync(labsPath, 'utf8'))) : null;
+const message = userMessage(items, { watch, labs, together: togetherNotes(items, watch), plan: improvementPlan({ watch, labs }) });
+console.log(`1. Read ${parsed.rows.toLocaleString()} rows from ${path}${watch ? `, ${watchPath}` : ''}${labs ? `, ${labsPath}` : ''} on this computer. What would leave it, encrypted:\n`);
+console.log(message.split('\n').map((l) => `   ${l}`).join('\n'));
 
 // 2. Check the hardware.
 const nonce = newNonce();
@@ -44,7 +60,7 @@ if (!att.ok) {
 
 // 3. Encrypt to the attested key and send.
 const client = newClientKeys();
-const messages = encryptMessages(att.key.publicKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: userMessage(items) }]);
+const messages = encryptMessages(att.key.publicKey, client.publicKey, [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: message }]);
 const requestBytes = new TextEncoder().encode(JSON.stringify(readingBody(model, messages)));
 console.log(`\n3. Sending ${requestBytes.length.toLocaleString()} bytes; every message is ciphertext (E2EE v3) to ${att.key.publicKey.slice(0, 16)}...`);
 const t0 = Date.now();
@@ -63,6 +79,8 @@ const choice = reply.choices?.[0];
 const text = decryptWith(client.secretKey, choice?.message?.content || '');
 console.log(`   Reply in ${((Date.now() - t0) / 1000).toFixed(1)} s (finish: ${choice?.finish_reason}, tokens: ${reply.usage?.total_tokens ?? '?'}), decrypted here:\n`);
 console.log(text.split('\n').map((l) => `   ${l}`).join('\n'));
+const stray = strayTopics(text);
+console.log(stray.length ? `\n   STRAYED: the text mentions ${stray.join(', ')}` : '\n   Stayed within the reading (no disease, diagnosis, medicine, supplement or treatment).');
 
 // 4. Check the signature.
 let sig = null;
