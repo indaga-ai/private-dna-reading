@@ -1,4 +1,6 @@
-# Private Health Reading
+# DNA Confidential
+
+*Named Private Health Reading until 11 Nov 2026; the demo video still uses that name.*
 
 An AI reads your DNA, your watch data and your blood test inside sealed hardware. The reading starts with a short plan, and you can check each step.
 
