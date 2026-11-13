@@ -233,6 +233,15 @@ Third-party libraries used as they are:
 
 NEAR AI's [inference-sdk](https://github.com/nearai/inference-sdk) (MIT) was the protocol reference, and its published Ed25519 test vector is in `test/fixtures/`.
 
+## Also by this team at NEAR HACKATHON: Indaga Next Check
+
+[Indaga Next Check](https://github.com/indaga-ai/indaga-next-check) is a separate project by the same team, built on 12–13 Nov 2026. It is a research prototype for a clinician working up a suspected rare disease, and it uses four invented cases.
+- Fixed urgency rules run first.
+- Then a model in NEAR AI Cloud's TEE writes a brief that names one next check.
+- The page verifies the hardware, the brief and the signature.
+
+It reuses this repository's attestation, encryption and signature modules under the MIT licence, and its README lists the files. Apart from this section, nothing in this repository changed for it.
+
 ## About
 
 Built by [Indaga](https://indaga.ai), an AI-native company building personalized medicine: it makes sense of a person's own health data. This open-source demo is a small, private version of that. It is separate from Indaga's own service, which analyses data on Indaga's servers. The privacy properties described here are this demo's.
